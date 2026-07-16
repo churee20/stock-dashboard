@@ -84,9 +84,10 @@
 ### 4.1 데이터 수집 파이프라인
 
 - **원본**: Google Sheets (`1.투자현황(현재)` 탭, `4.계좌별 비중` 탭)
-- **수집 방식**: Claude Code Windows 버전의 스케줄(Cron 유사) 기능을 이용해 주기적으로 실행되는 수집 스크립트
+- **수집 방식**: Google 서비스 계정(Service Account) 인증으로 Google Sheets API에 접근하여, Vercel Cron이 매일 정해진 시각에 `/api/cron/collect` API Route를 자동 호출하는 서버리스 수집 파이프라인 (PC 전원 상태와 무관하게 항상 동작)
 - **처리**: 시트 값을 파싱하여 계좌별 실적(투자원금/현재금액/수익금액/수익률)을 당일 스냅샷으로 Supabase에 저장
 - **적재 방식**: 동일 계좌·동일 날짜 데이터는 upsert, 날짜가 달라지면 신규 row로 누적 → 일별/주별/월별 추이 데이터의 기반이 됨
+- **상세 구현**: `docs/tasks/TASK-006.md` 참조
 
 ### 4.2 조회 애플리케이션
 
@@ -272,7 +273,7 @@
 |---|---|
 | 성능 | 대시보드 및 조회 화면 3초 이내 로딩 |
 | 반응형 | 데스크톱/모바일 브라우저 대응 |
-| 보안 | Supabase 접근 키(Service Role Key 등)는 서버 사이드에서만 사용, 클라이언트에는 노출 금지. Google Sheets 인증 정보는 수집 스크립트 실행 환경에만 안전하게 보관 |
+| 보안 | Supabase 접근 키(Service Role Key 등)는 서버 사이드에서만 사용, 클라이언트에는 노출 금지. Google 서비스 계정 키(private key)는 Vercel 환경변수에만 저장하고 저장소에 커밋하지 않음. 수집 API Route는 `CRON_SECRET` 등으로 무단 호출을 차단 |
 | 가용성 | 수집 스케줄 실패 시에도 기존 조회 화면은 마지막 성공 데이터로 정상 동작 |
 | 데이터 정합성 | 원본 시트 값과 DB 적재 값의 금액/수익률 오차 없음 (반올림 규칙 일치) |
 
@@ -283,7 +284,7 @@
 | 영역 | 기술 |
 |---|---|
 | 데이터 원본 | Google Sheets |
-| 데이터 수집 | Claude Code (Windows) 스케줄 작업 기반 수집 스크립트 |
+| 데이터 수집 | Google 서비스 계정 인증 + Google Sheets API, Vercel Cron으로 스케줄 실행되는 Next.js API Route |
 | 데이터베이스 | Supabase (PostgreSQL) |
 | 프론트엔드 | Next.js, TypeScript, Tailwind CSS, shadcn/ui |
 | 상태관리 | Zustand |
@@ -317,9 +318,10 @@
 
 | 리스크 | 내용 | 대응 방향 |
 |---|---|---|
-| Google Sheets 구조 변경 | 원본 시트의 컬럼/탭 구조가 바뀌면 수집 스크립트가 깨질 수 있음 | 파싱 로직에 시트 구조 검증 단계 추가, 실패 시 알림/로그 기록 |
-| 스케줄 실행 환경 의존성 | Claude Code Windows 스케줄은 로컬 PC 실행 의존적 (PC 꺼짐 시 수집 중단) | 향후 서버리스/클라우드 스케줄러 전환 검토 |
-| Supabase 인증정보 관리 | 수집 스크립트와 웹 앱이 각각 DB 접근 필요 | 환경변수로 분리 관리, 웹 앱은 읽기 전용 키 사용 권장 |
+| Google Sheets 구조 변경 | 원본 시트의 컬럼/탭 구조가 바뀌면 수집 파이프라인이 깨질 수 있음 | 파싱 로직에 시트 구조 검증 단계 추가, 실패 시 알림/로그 기록 |
+| Vercel Cron 실행 정확도 | 무료 플랜은 하루 1회 실행 제한 및 실행 시각 오차가 있을 수 있음 | 정시 실행이 중요하면 Vercel Pro 플랜 사용, 수집 실패 시 폴백 처리(마지막 성공 데이터 유지)로 화면 영향 최소화 |
+| Google 서비스 계정 키 관리 | 서비스 계정 private key 유출 시 시트 데이터 무단 열람 위험 | Vercel 환경변수로만 관리, 저장소 커밋 금지, 시트는 뷰어 권한만 부여 |
+| Supabase 인증정보 관리 | 수집 API Route와 웹 앱이 각각 DB 접근 필요 | 환경변수로 분리 관리, 웹 앱은 읽기 전용 키, 수집 파이프라인은 Service Role Key 사용 |
 | 주/월 집계 기준 모호성 | "마지막 수집일 스냅샷" 기준의 구체적 규칙 미확정 | 개발 착수 전 주차 기준(ISO 등) 확정 필요 |
 
 ---
@@ -328,6 +330,6 @@
 
 1. 본 PRD를 기반으로 `ROADMAP.md` 작성 (development-planner 에이전트 활용)
 2. Supabase 스키마 상세 설계 및 마이그레이션 작성
-3. Google Sheets 수집 스크립트 프로토타입 개발 및 Claude Code Windows 스케줄 등록
+3. Google 서비스 계정 발급 및 Google Sheets API 연동 프로토타입 개발, Vercel Cron 스케줄 등록
 4. Next.js 프로젝트 초기화 및 Vercel 배포 파이프라인 구성
 5. 4개 화면 UI 구현 (더미 데이터 → 실 데이터 연동 순서)

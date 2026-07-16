@@ -1,0 +1,20 @@
+윈도우에서 수행하는 agent.md 파일을 분석해줘
+  현재 개발하는 프로그램을 vercle.com에 배포 할 예정임
+  배포하고 나서 구글 독스에서 수집하는 절차는 d:\00.은퇴계획\투자통계\agent.md 문서를     
+  참고
+  [원하는 방향]
+  1) STEP 1. Google Sheets 데이터 수집  
+   -. 1단계: Chrome gviz API로 실시간 데이터 수집 (최우선) : vercel.com 에 배포 프로그램에서 수행 원함
+  2) STEP 2. 투자실적_일별추적.json 업데이트
+   -. 이 단계에 Supabase에 생성한 DB에 Insert 하는 로직 구현  
+  3) STEP 3. 투자실적_집계보고서.xlsx 업데이트 : 지금 개발하는 프로그램으로 대체
+  4) STEP 4. Investment Dashboard 생성/업데이트 : 지금 개발하는 프로그램으로 대체
+  5) STEP 5. 카카오톡 알림 전송 : vercel.com에서 카카오 MCP 연동 프로그램 개발   
+  6) STEP 5-2. Slack 알림 전송 (카카오톡과 동일 메시지) : vercel.com 배포 프로그램에서 slack mcp 연동
+  7) STEP 6. 구글 캘린더 이벤트 등록 : vercel.com 배포 프로그램에서 구글 캘린더 MCP 연동
+  8) STEP 8. 현황 메모리 저장 및 화면 출력 (모든 실행 시) : 지금 개발하는 프로그램으로 대체
+
+  
+   
+
+  

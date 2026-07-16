@@ -1,260 +1,172 @@
 # Task 003: 공통 컴포넌트 라이브러리 구현
 
 ## 개요
-- **목표**: 재사용 가능한 공통 컴포넌트 라이브러리를 구축하고 더미 데이터를 준비하여 Phase 2의 UI 개발 기반을 마련
-- **예상 소요 시간**: 2일
-- **관련 기능**: F001-F015 (모든 기능의 UI 기반)
-- **의존성**: Task 002 (타입 정의 및 인터페이스 설계) 완료
+- **목표**: 대시보드/일별/주별/월별 4개 화면에서 공통으로 사용할 차트·테이블·폼 컴포넌트와, 이를 채울 더미 데이터 생성 유틸리티를 구축하여 Task 004(화면 조립)의 토대를 마련
+- **관련 기능**: 요약 카드, 상세 테이블, 조회 조건 폼, 도넛/꺾은선 차트, 계좌별 비중 막대 리스트 — 4개 화면 전반에서 재사용되는 UI 빌딩블록
+- **의존성**: Task 001(프로젝트 구조 및 라우팅 설정) 완료 필요
+- **참조 문서**: `docs/PRD.md`(5장, 6.2절), `docs/ROADMAP.md`, `docs/tasks/TASK-001.md`, `docs/guides/component-patterns.md`, `docs/guides/styling-guide.md`, `docs/guides/project-structure.md`, `agent.md`(계좌 명칭·구분 참고), `docs/PLAN-TASK-003-004.md`
+
+> ⚠️ **Task 002와의 관계**: Task 002(타입 정의 및 DB 스키마 설계)는 로드맵상 Phase 3(Task 003/004보다 뒤)에 위치한다. 이 Task에서는 PRD 6.2절의 개략 데이터 모델을 **선행 타입**으로 정의해 두고, Task 002 진행 시 Supabase 생성 타입으로 교체·정식화한다.
+
+---
 
 ## 구현 사항
 
-### 1. shadcn/ui 컴포넌트 추가 설치
-- [ ] Avatar 컴포넌트 설치
-- [ ] Dialog 컴포넌트 설치
-- [ ] Sonner (Toast) 컴포넌트 설치 및 Provider 설정
-- [ ] Form 컴포넌트 설치 (React Hook Form 통합)
-- [ ] Select 컴포넌트 설치
-- [ ] Skeleton 컴포넌트 설치
+### 1. 패키지 설치
+- [ ] `recharts` 설치 (차트 라이브러리 — shadcn/ui 공식 chart 컴포넌트가 Recharts 기반이라 채택)
+- [ ] `zustand` 설치 (설치만 진행, 실제 사용은 Task 005 이후 필요성 재확인 후 결정 — 주의사항 참고)
+- [ ] `react-hook-form`, `zod`, `@hookform/resolvers` 설치 (조회 조건 폼에서 사용)
+- [ ] `dayjs` 설치 + `isoWeek` 플러그인 (주차 계산, 기간 필터에 사용)
 
-**참고**: 이미 설치된 컴포넌트
-- ✅ Badge, Button, Card, Checkbox, Dropdown Menu, Input, Label, Empty State
+### 2. shadcn/ui 컴포넌트 추가
+- [ ] `npx shadcn@latest add table checkbox popover command calendar select badge skeleton separator form` 실행
+- [ ] `components.json`의 `base-nova` 스타일이 신규 컴포넌트에도 동일하게 적용되었는지 확인
 
-### 2. 이벤트 카드 컴포넌트 구현
-- [ ] EventCard 컴포넌트 생성 (`components/events/event-card.tsx`)
-  - 이벤트 썸네일 이미지 표시 (Card + Avatar)
-  - 이벤트 제목, 날짜, 장소 표시
-  - 호스트 프로필 (아바타 + 이름)
-  - 참여자 수 표시 (Badge)
-  - 이벤트 상태 표시 (Badge: upcoming/ongoing/ended)
-  - variant 지원 (default, compact)
-  - 호버 효과 및 클릭 액션
+### 3. 색상 인프라 정비 (`src/app/globals.css`)
+- [ ] `--chart-1`~`--chart-5`를 현재 그레이스케일(oklch 무채색)에서 채도 있는 카테고리컬 팔레트로 교체 (다크모드 포함)
+- [ ] `--profit-positive`(수익 양수 강조, 빨강 계열), `--profit-negative`(수익 음수, 파랑 계열) 신규 시맨틱 변수 추가 — 기존 `--destructive`(위험/삭제 의미)와 의미 분리
+- [ ] `@theme inline` 블록에 신규 변수 매핑 추가 (`--color-profit-positive` 등, 기존 `--color-chart-*` 패턴 따름)
 
-**타입 사용**: `EventCardProps` from `lib/types/components.ts`
+### 4. 선행 타입 정의 (`src/lib/types/`)
+- [ ] `account.ts`: `AccountType`("연금" | "개인투자"), `Account`(id, accountName, accountNoMasked, accountType, createdAt), `AccountSnapshot`(id, accountId, snapshotDate, principalAmount, currentAmount, profitAmount, profitRate, collectedAt) — PRD 6.2 기준. 파일 상단에 "Task 002에서 Supabase 생성 타입으로 교체 예정" 주석 명시
+- [ ] `dashboard.ts`: `SummaryCardData`, `GroupBreakdown`, `AccountRatioItem`
+- [ ] `period-view.ts`: `PeriodGranularity`("daily"|"weekly"|"monthly"), `PeriodRowGroup`, `PeriodTableRow`, `PeriodChartPoint`
 
-### 3. 참여자 프로필 카드 컴포넌트 구현
-- [ ] ParticipantCard 컴포넌트 생성 (`components/participants/participant-card.tsx`)
-  - 참여자 아바타 (Avatar)
-  - 참여자 이름
-  - 역할 표시 (Badge: host/participant)
-  - size 지원 (sm, md, lg)
-  - 선택적 showRole prop
+### 5. 더미 데이터 유틸리티 (`src/lib/dummy-data/`)
+- [ ] `accounts.ts`: 계좌 8종 고정 마스터 데이터
+  - 연금(5): 퇴직연금, 개인연금(기존), 개인연금(신), DC계좌, 퇴직연금(삼성)
+  - 개인투자(3): 처리투자(미래에셋), 은퇴투자(미래에셋), ISA계좌
+  - agent.md의 명칭을 참고하되, 계좌번호는 이미 마스킹된 예시 형태만 사용 (실제 원본 계좌번호 하드코딩 금지)
+- [ ] `generate-snapshots.ts`: 시드 고정 결정론적 PRNG(예: mulberry32)로 계좌별 랜덤워크 일별 스냅샷 생성
+  - 최소 14개월치 생성 (연도 경계를 넘겨야 월별 화면의 "년도 선택"이 의미 있음)
+  - 계좌별 `principalAmount`는 고정, `currentAmount`는 전일 대비 -2%~+2% 랜덤워크
+  - 주말은 전일값 유지 옵션 포함
+  - 재실행/새로고침 시에도 동일한 값이 나오도록 시드 고정 (매번 값이 달라지면 안 됨)
+- [ ] `aggregate.ts`:
+  - `aggregateToWeekly(snapshots)`: 주 마지막 수집일 스냅샷을 그 주 대표값으로 반환 (PRD 5.4 규칙)
+  - `aggregateToMonthly(snapshots)`: 월 마지막 수집일 스냅샷을 그 달 대표값으로 반환 (PRD 5.5 규칙)
+  - `calculateGroupTotals(accounts, snapshots)`: 연금/개인투자 그룹 소계 + 전체 합계 계산
+  - 부수효과 없는 순수 함수로 작성 (Task 005에서 실 데이터 집계 로직으로 그대로 승격 가능하도록)
+- [ ] `index.ts`: 배럴 export + 모듈 로드 시 1회 생성되는 완제품 더미 데이터셋(`DUMMY_ACCOUNTS`, `DUMMY_SNAPSHOTS`) export
 
-**타입 사용**: `ParticipantCardProps` from `lib/types/components.ts`
+### 6. 공통 차트 컴포넌트 (`src/components/charts/`)
+- [ ] `chart-container.tsx`: shadcn `ChartContainer`/`ChartTooltip` 래퍼 (색상은 CSS 변수 참조)
+- [ ] `donut-chart.tsx`: 도넛 차트 (연금 vs 개인투자 비중, 전체 계좌 비중 겸용). Props: `data`(label/value/colorVar 배열), `centerLabel?`, `centerValue?`
+- [ ] `trend-line-chart.tsx`: 꺾은선 그래프 (일/주/월 공용, 전체/연금/개인투자 다계열). Props에 `yAxisMode: "amount" | "profitRate"` 포함 — **단일 Y축, 토글 방식**으로 금액/수익률 전환 (병행 이중 축 사용 금지)
 
-### 4. 로딩 스켈레톤 컴포넌트 구현
-- [ ] EventCardSkeleton 컴포넌트 생성 (`components/skeletons/event-card-skeleton.tsx`)
-  - 이벤트 카드와 동일한 레이아웃
-  - Skeleton 컴포넌트 활용
-  - variant 지원 (default, compact)
+### 7. 공통 테이블 컴포넌트 (`src/components/tables/`)
+- [ ] `table-row-profit-cell.tsx`: 수익금액/수익률 셀. `amount > 0`이면 `--profit-positive` 색상 + `+` 접두사, `amount < 0`이면 `--profit-negative` 색상, 0은 중립색
+- [ ] `period-table.tsx`: 일/주/월 공용 실적 테이블 (날짜|구분|투자원금|현재금액|수익금액|수익률). 전체합계 행 강조 스타일 지원
+- [ ] `grouped-detail-table.tsx`: 대시보드 상세 테이블 (연금/개인투자 그룹별 접기/펼치기 + 그룹 소계 + 전체 합계 행)
 
-- [ ] ParticipantCardSkeleton 컴포넌트 생성 (`components/skeletons/participant-card-skeleton.tsx`)
-  - 참여자 카드와 동일한 레이아웃
-  - size 지원 (sm, md, lg)
+### 8. 공통 폼 컴포넌트 (`src/components/forms/`)
+- [ ] `account-multi-select.tsx`: 계좌 다중 선택 (Command + Popover + Checkbox 조합)
+- [ ] `date-range-picker.tsx`: 시작일/종료일 선택 (shadcn Calendar 기반, 일별/주별 화면에서 사용)
+- [ ] `month-range-select.tsx`: 년도/시작월/종료월 선택 (월별 화면에서 사용)
 
-- [ ] ListSkeleton 컴포넌트 생성 (`components/skeletons/list-skeleton.tsx`)
-  - 범용 리스트 스켈레톤
-  - count prop으로 개수 조절 가능
+### 9. 빌드 스크립트 정비
+- [ ] `package.json`에 `"typecheck": "tsc --noEmit"` 스크립트 추가 (TASK-001.md의 수락 기준이 이미 이 명령을 전제하지만 스크립트 자체가 없었음)
 
-### 5. 빈 상태 UI 컴포넌트
-- [x] EmptyState 컴포넌트 이미 구현됨 (`components/ui/empty-state.tsx`)
-  - ✅ 아이콘, 제목, 설명, 액션 버튼 지원
-  - **추가 작업 불필요**
-
-### 6. 더미 데이터 생성 및 관리 유틸리티
-- [ ] 더미 데이터 디렉토리 생성 (`lib/data/`)
-- [ ] 더미 사용자 데이터 생성 (`lib/data/users.ts`)
-  - 10명의 더미 사용자 (호스트 5명, 참여자 5명)
-  - 실제 같은 이름, 이메일, 아바타 URL
-  - 생성일시는 현재로부터 -30일 ~ -1일 범위
-
-- [ ] 더미 이벤트 데이터 생성 (`lib/data/events.ts`)
-  - 20개의 더미 이벤트
-  - 상태별 분포: upcoming (10), ongoing (5), ended (5)
-  - 이벤트 날짜: 과거 5개, 진행 중 5개, 미래 10개
-  - 다양한 카테고리 (모임, 스터디, 파티, 워크샵 등)
-  - 실제 장소명 사용 (서울 주요 지역)
-  - 커버 이미지 URL (Unsplash 활용)
-  - 각 이벤트마다 랜덤 호스트 할당
-
-- [ ] 더미 참여자 관계 데이터 생성 (`lib/data/participants.ts`)
-  - 각 이벤트당 3-15명의 참여자
-  - 호스트는 자동으로 'host' 역할
-  - 나머지는 'participant' 역할
-  - 참여 일시는 이벤트 생성일 이후, 이벤트 날짜 이전
-
-- [ ] 더미 데이터 인덱스 파일 (`lib/data/index.ts`)
-  - 모든 더미 데이터 export
-  - 데이터 조회 헬퍼 함수 제공
-    - `getUserById(id: string): User | undefined`
-    - `getEventById(id: string): Event | undefined`
-    - `getEventsByStatus(status: string): Event[]`
-    - `getEventParticipants(eventId: string): ParticipantWithUser[]`
-    - `getUserEvents(userId: string): Event[]`
-    - `getUpcomingEvents(limit?: number): Event[]`
+---
 
 ## 수락 기준
 
-### 기능 완성도
-1. ✅ shadcn/ui 6개 컴포넌트 설치 완료 (Avatar, Dialog, Sonner, Form, Select, Skeleton)
-2. ✅ EventCard 컴포넌트가 모든 필수 정보를 표시하고 2가지 variant 지원
-3. ✅ ParticipantCard 컴포넌트가 3가지 size를 지원하고 역할 표시 가능
-4. ✅ 3종류의 스켈레톤 컴포넌트가 실제 컴포넌트와 일치하는 레이아웃
-5. ✅ 더미 데이터가 현실적이고 다양한 시나리오를 커버
+1. [ ] 위 차트/테이블/폼 컴포넌트가 더미 데이터를 받아 개별적으로 렌더링했을 때 에러 없이 표시된다 (Task 004에서 실제 화면에 조립하며 확인 가능)
+2. [ ] `--profit-positive`/`--profit-negative`가 light/dark 모드 모두에 정의되어 있고, `--destructive`와 별도로 구분된다
+3. [ ] `--chart-1`~`--chart-5`가 시각적으로 구분 가능한 채도 있는 색상으로 정의되어 있다
+4. [ ] `generate-snapshots.ts`로 생성한 더미 데이터가 재실행/새로고침 시에도 동일한 값을 반환한다 (시드 고정 확인)
+5. [ ] `aggregateToWeekly`/`aggregateToMonthly`/`calculateGroupTotals`의 결과값이 원본 일별 데이터의 합과 일치한다 (그룹 소계 = 개별 계좌 합)
+6. [ ] `npm run typecheck`, `npm run lint`, `npm run build`가 에러 없이 통과한다
+7. [ ] any 타입 사용 없음, 컴포넌트는 kebab-case 파일명 + PascalCase 컴포넌트명 규칙 준수, 파일당 300줄 이하 권장 기준 준수
 
-### 데이터 품질
-1. ✅ 최소 10명의 더미 사용자
-2. ✅ 최소 20개의 더미 이벤트 (상태별 고르게 분포)
-3. ✅ 각 이벤트당 3-15명의 참여자
-4. ✅ 날짜 데이터가 논리적으로 일관성 있음 (참여일 < 이벤트 날짜)
-5. ✅ 헬퍼 함수들이 정확하게 데이터를 조회
-
-### 코드 품질
-1. ✅ 모든 컴포넌트가 TypeScript 타입 정의 사용
-2. ✅ 컴포넌트가 재사용 가능하고 props로 커스터마이징 가능
-3. ✅ 일관된 스타일 (Tailwind CSS, shadcn/ui 테마)
-4. ✅ 다크 모드 지원
-5. ✅ 접근성 고려 (적절한 aria-label, 시맨틱 HTML)
-
-### 통합 테스트
-1. ✅ 모든 컴포넌트가 Storybook 또는 테스트 페이지에서 정상 렌더링
-2. ✅ 더미 데이터 헬퍼 함수가 정확한 결과 반환
-3. ✅ 라이트/다크 모드에서 컴포넌트가 올바르게 표시
-4. ✅ 모바일/데스크톱 반응형 동작 확인
+---
 
 ## 관련 파일
 
 ### 생성할 파일
 ```
-components/
-├── events/
-│   └── event-card.tsx           # 새로 생성
-├── participants/
-│   └── participant-card.tsx     # 새로 생성
-├── skeletons/
-│   ├── event-card-skeleton.tsx  # 새로 생성
-│   ├── participant-card-skeleton.tsx  # 새로 생성
-│   └── list-skeleton.tsx        # 새로 생성
-└── ui/
-    ├── avatar.tsx               # shadcn add
-    ├── dialog.tsx               # shadcn add
-    ├── sonner.tsx               # shadcn add
-    ├── form.tsx                 # shadcn add
-    ├── select.tsx               # shadcn add
-    └── skeleton.tsx             # shadcn add
-
-lib/
-└── data/
-    ├── users.ts                 # 새로 생성
-    ├── events.ts                # 새로 생성
-    ├── participants.ts          # 새로 생성
-    └── index.ts                 # 새로 생성
+src/
+├── lib/
+│   ├── types/
+│   │   ├── account.ts          # Account, AccountSnapshot 선행 타입
+│   │   ├── dashboard.ts        # 대시보드 화면 조립 타입
+│   │   └── period-view.ts      # 일/주/월 공용 화면 조립 타입
+│   └── dummy-data/
+│       ├── accounts.ts         # 계좌 8종 고정 마스터
+│       ├── generate-snapshots.ts # 시드 기반 일별 스냅샷 생성
+│       ├── aggregate.ts        # 주별/월별 집계 + 그룹 합계
+│       └── index.ts            # 배럴 export + 완제품 더미 데이터셋
+└── components/
+    ├── charts/
+    │   ├── chart-container.tsx
+    │   ├── donut-chart.tsx
+    │   └── trend-line-chart.tsx
+    ├── tables/
+    │   ├── table-row-profit-cell.tsx
+    │   ├── period-table.tsx
+    │   └── grouped-detail-table.tsx
+    └── forms/
+        ├── account-multi-select.tsx
+        ├── date-range-picker.tsx
+        └── month-range-select.tsx
 ```
 
-### 참조할 파일
-- `lib/types/models.ts` - 도메인 모델 타입
-- `lib/types/components.ts` - 컴포넌트 Props 타입
-- `components/ui/empty-state.tsx` - 기존 컴포넌트 참고
-- `components.json` - shadcn/ui 설정
+### 수정할 파일
+```
+src/app/globals.css     # 차트 팔레트 교체, profit 변수 추가
+package.json            # 패키지 추가, typecheck 스크립트 추가
+```
+
+---
 
 ## 구현 단계
 
-### Step 1: shadcn/ui 컴포넌트 설치 (30분)
+### Step 1: 패키지 및 shadcn 컴포넌트 설치
 ```bash
-# 필수 컴포넌트 일괄 설치
-npx shadcn@latest add avatar dialog sonner form select skeleton
-
-# Sonner Provider를 app/layout.tsx에 추가
+npm install recharts zustand react-hook-form zod @hookform/resolvers dayjs
+npx shadcn@latest add table checkbox popover command calendar select badge skeleton separator form
 ```
 
-**중요**: Form 컴포넌트는 React Hook Form과 Zod를 함께 설치합니다.
+### Step 2: 색상 인프라 정비
+1. `globals.css`의 `--chart-1~5`를 채도 있는 팔레트로 교체 (라이트/다크 모두)
+2. `--profit-positive`/`--profit-negative` 추가 및 `@theme inline`에 매핑
 
-### Step 2: 이벤트 카드 컴포넌트 구현 (2시간)
-1. `components/events/` 디렉토리 생성
-2. EventCard 컴포넌트 구현
-   - Card 컴포넌트를 베이스로 사용
-   - 이미지는 next/image 컴포넌트 사용
-   - 날짜 포맷팅은 date-fns 또는 Intl API 사용
-   - 호버 효과: `hover:shadow-lg transition-shadow`
-3. Variant별 스타일 분기
-   - default: 풀 레이아웃, 모든 정보 표시
-   - compact: 간소화된 레이아웃, 핵심 정보만
+### Step 3: 선행 타입 정의
+1. `src/lib/types/account.ts` 작성 (PRD 6.2 그대로 이식 + 교체 예정 주석)
+2. `dashboard.ts`, `period-view.ts` 작성
 
-### Step 3: 참여자 카드 컴포넌트 구현 (1시간)
-1. `components/participants/` 디렉토리 생성
-2. ParticipantCard 컴포넌트 구현
-   - Avatar 컴포넌트 활용
-   - Badge로 역할 표시
-   - size에 따른 아바타 크기 조절
-3. 반응형 및 접근성 고려
+### Step 4: 더미 데이터 유틸리티
+1. `accounts.ts` (계좌 8종)
+2. `generate-snapshots.ts` (시드 기반 생성기)
+3. `aggregate.ts` (주별/월별 집계, 그룹 합계)
+4. `index.ts`로 조립 및 export
 
-### Step 4: 스켈레톤 컴포넌트 구현 (1.5시간)
-1. `components/skeletons/` 디렉토리 생성
-2. 각 카드 컴포넌트에 대응하는 스켈레톤 구현
-   - 실제 컴포넌트와 동일한 레이아웃 유지
-   - Skeleton 컴포넌트로 각 영역 표시
-3. ListSkeleton 범용 컴포넌트 구현
+### Step 5: 공통 컴포넌트 구현
+1. `charts/` — chart-container → donut-chart → trend-line-chart 순
+2. `tables/` — table-row-profit-cell → period-table → grouped-detail-table 순
+3. `forms/` — account-multi-select → date-range-picker → month-range-select 순
 
-### Step 5: 더미 데이터 생성 (3시간)
-1. `lib/data/` 디렉토리 생성
-2. 더미 사용자 데이터 작성
-   - 실제 같은 한국 이름 사용
-   - UI Avatars API 또는 Unsplash 아바타 이미지
-3. 더미 이벤트 데이터 작성
-   - 다양한 카테고리와 시나리오
-   - 현실적인 제목과 설명
-   - Unsplash 이미지 활용
-4. 참여자 관계 데이터 생성
-   - 랜덤하게 사용자를 이벤트에 배정
-   - 논리적인 날짜 순서 유지
-5. 헬퍼 함수 구현 및 테스트
+### Step 6: 품질 검증
+```bash
+npm run typecheck
+npm run lint
+npm run build
+```
 
-### Step 6: 통합 및 검증 (1시간)
-1. 컴포넌트가 더미 데이터와 잘 동작하는지 확인
-2. Toaster 컴포넌트를 layout.tsx에 추가
-3. 다크 모드 테스트
-4. 반응형 동작 확인
-5. TypeScript 타입 체크
-6. ESLint 및 Prettier 실행
+---
 
 ## 주의사항
 
-### 컴포넌트 설계
-1. **Props 최소화**: 필요한 props만 정의하고, 기본값 제공
-2. **타입 안정성**: 모든 props에 TypeScript 타입 지정
-3. **재사용성**: 다양한 상황에서 사용 가능하도록 유연하게 설계
-4. **접근성**: ARIA 속성 및 키보드 네비게이션 고려
+1. **Zustand는 설치만, 사용은 보류**: PRD 8장이 상태관리 기술로 Zustand를 명시하지만, 현재 단계에서는 화면 간 상태 공유 요구사항이 없어 로컬 `useState`로 충분하다고 판단. Task 005(실 데이터 연동) 이후 실제 필요성이 확인되면 도입 재검토
+2. **개인정보 보호**: agent.md에 언급된 계좌번호는 참고용 예시일 뿐이며, 실제 원본 계좌번호를 코드에 하드코딩하지 않고 이미 마스킹된 형태만 사용
+3. **색상 하드코딩 금지**: Recharts 시리즈 색상은 반드시 `var(--chart-1)` 등 시맨틱 CSS 변수를 참조. 하드코딩된 hex/rgb 금지
+4. **순수 함수 원칙**: 더미 데이터 생성/집계 로직은 Task 005에서 실 데이터 집계 로직으로 그대로 승격될 것을 전제로 부수효과 없이 작성
+5. **any 타입 금지**: 전역 규칙 준수, Recharts/shadcn 컴포넌트 Props도 명시적 타입 지정
+6. **Server Components 우선**: 차트/폼처럼 상호작용이 필요한 컴포넌트만 `'use client'`, 순수 표시용 테이블 등은 Server Component로 유지 가능한지 검토
 
-### 더미 데이터
-1. **현실성**: 실제 프로덕션에서 사용할 것 같은 데이터 생성
-2. **다양성**: 엣지 케이스를 커버하는 다양한 시나리오
-3. **일관성**: 날짜, 관계 등이 논리적으로 일관되어야 함
-4. **확장성**: 쉽게 데이터를 추가/수정할 수 있는 구조
-
-### 성능
-1. **이미지 최적화**: next/image 컴포넌트 사용
-2. **지연 로딩**: 필요한 경우 lazy loading 적용
-3. **메모이제이션**: React.memo 적용 고려 (필요시)
-
-### 스타일링
-1. **일관성**: shadcn/ui 디자인 시스템 준수
-2. **반응형**: 모바일 퍼스트 접근
-3. **다크 모드**: 모든 컴포넌트에서 지원
-4. **애니메이션**: 부드러운 전환 효과 (transition-all)
+---
 
 ## 다음 단계
 
 Task 003 완료 후:
-1. **Task 004**: 주최자 모바일 UI/UX 완성
-   - 완성된 공통 컴포넌트 활용
-   - 더미 데이터로 전체 페이지 구현
-2. **Task 005**: 참여자 모바일 UI/UX 완성
-   - Task 004의 컴포넌트 재사용
-3. **Task 006**: 관리자 데스크톱 페이지 UI 완성
-
-## 참고 자료
-
-- [shadcn/ui Documentation](https://ui.shadcn.com)
-- [Radix UI Primitives](https://www.radix-ui.com)
-- [Tailwind CSS](https://tailwindcss.com)
-- [React Hook Form](https://react-hook-form.com)
-- [Unsplash Source API](https://source.unsplash.com)
+1. **Task 004**: 4개 화면 UI 완성 — 본 Task에서 만든 컴포넌트와 더미 데이터를 대시보드/일별/주별/월별 화면에 조립

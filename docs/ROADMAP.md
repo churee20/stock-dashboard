@@ -40,19 +40,13 @@
 
 ## 개발 단계
 
-### Phase 1: 애플리케이션 골격 구축
+### Phase 1: 애플리케이션 골격 구축 ✅
 
-- **Task 001: 프로젝트 구조 및 라우팅 설정** - 우선순위
-  - Next.js App Router 기반 프로젝트 초기화 (TypeScript, Tailwind CSS, shadcn/ui)
-  - 4개 화면 라우트 생성: `/`(대시보드), `/daily`(일별), `/weekly`(주별), `/monthly`(월별)
-  - 공통 레이아웃(헤더 + 탭 내비게이션) 골격 구현
-  - 각 라우트에 빈 페이지 컴포넌트 생성
-
-- **Task 002: 타입 정의 및 DB 스키마 설계**
-  - `Account`, `AccountSnapshot` TypeScript 인터페이스 정의 (계좌명, 계좌구분, 투자원금, 현재금액, 수익금액, 수익률, 수집일 등)
-  - Supabase 테이블 스키마 설계: `accounts`(계좌 마스터), `account_snapshots`(일별 실적 이력)
-  - 주별/월별 집계용 DB 뷰 또는 쿼리 인터페이스 설계 (마지막 수집일 스냅샷 기준)
-  - API 응답 타입 정의 (대시보드 요약, 일/주/월별 조회 응답)
+- **Task 001: 프로젝트 구조 및 라우팅 설정** ✅ - 완료
+  - ✅ Next.js App Router 기반 프로젝트 초기화 (TypeScript, Tailwind CSS, shadcn/ui)
+  - ✅ 4개 화면 라우트 생성: `/`(대시보드), `/daily`(일별), `/weekly`(주별), `/monthly`(월별)
+  - ✅ 공통 레이아웃(헤더 + 탭 내비게이션) 골격 구현
+  - ✅ 각 라우트에 빈 페이지 컴포넌트 생성
 
 ### Phase 2: UI/UX 완성 (더미 데이터 활용)
 
@@ -71,6 +65,12 @@
 
 ### Phase 3: 핵심 기능 구현
 
+- **Task 002: 타입 정의 및 DB 스키마 설계**
+  - `Account`, `AccountSnapshot` TypeScript 인터페이스 정의 (계좌명, 계좌구분, 투자원금, 현재금액, 수익금액, 수익률, 수집일 등)
+  - Supabase 테이블 스키마 설계: `accounts`(계좌 마스터), `account_snapshots`(일별 실적 이력)
+  - 주별/월별 집계용 DB 뷰 또는 쿼리 인터페이스 설계 (마지막 수집일 스냅샷 기준)
+  - API 응답 타입 정의 (대시보드 요약, 일/주/월별 조회 응답)
+
 - **Task 005: Supabase 연동 및 조회 API 개발** - 우선순위
   - Supabase 프로젝트 생성 및 `accounts`, `account_snapshots` 테이블/마이그레이션 작성
   - 서버 사이드 Supabase 클라이언트 구성 (Service Role Key는 서버에서만 사용, 클라이언트에는 읽기 전용 키만 노출)
@@ -79,13 +79,13 @@
   - 더미 데이터를 실제 Supabase 조회로 교체
   - Playwright MCP를 활용한 조회 API 통합 테스트 (조회 조건 변경 시 데이터 갱신 검증)
 
-- **Task 006: Google Sheets 수집 파이프라인 및 스케줄 등록**
-  - Google Sheets API 연동 스크립트 작성 ("1.투자현황(현재)", "4.계좌별 비중" 탭 파싱)
+- **Task 006: Google Sheets 수집 파이프라인 및 스케줄 등록 (Vercel Cron 기반)**
+  - Google 서비스 계정 인증으로 Google Sheets API 연동 ("1.투자현황(현재)", "4.계좌별 비중" 탭 파싱)
   - 시트 데이터를 `accounts`/`account_snapshots` upsert 로직으로 변환 (동일 계좌+동일 수집일 갱신, 신규 계좌 자동 등록)
   - 시트 구조 검증 및 수집 실패 시 로그 기록 처리
-  - Claude Code(Windows) 스케줄 작업 등록 (1일 1회 이상 실행)
-  - Google Sheets 인증 정보 및 Supabase 접근 키를 환경변수로 안전하게 분리 관리
-  - Playwright MCP로는 검증 불가하므로 스케줄 수동 실행 후 Supabase 데이터 적재 결과 검증 (수집 성공 로그, upsert 정합성 확인)
+  - `/api/cron/collect` API Route 구현 및 Vercel Cron 스케줄 등록 (1일 1회 이상 실행, PC 전원 상태 무관 자동 실행)
+  - Google 서비스 계정 키 및 Supabase 접근 키를 환경변수로 안전하게 분리 관리
+  - Playwright MCP로는 스케줄 자동 트리거 자체는 검증 불가하므로, API 수동 호출 후 Supabase 데이터 적재 결과 검증 (수집 성공 로그, upsert 정합성 확인)
 
 - **Task 006-1: 핵심 기능 통합 테스트**
   - Playwright MCP를 사용한 전체 사용자 플로우 테스트 (대시보드 진입 → 일/주/월별 화면 전환 → 조회 조건 변경)
@@ -106,3 +106,8 @@
   - Vercel 프로젝트 연결 및 환경변수(Supabase URL/Key 등) 설정
   - 프로덕션 배포 파이프라인 구성 및 배포 후 4개 화면 최종 E2E 검증 (Playwright MCP)
   - 모니터링/로깅(수집 스케줄 성공률, API 에러) 기초 구성
+
+---
+
+**📅 최종 업데이트**: 2026-07-14
+**📊 진행 상황**: Phase 1 완료, Phase 2 진행 중 (1/9 Tasks 완료)
