@@ -1,6 +1,16 @@
+import dayjs from "dayjs"
+
 import { MainNav } from "@/components/navigation/main-nav"
 
-export function Header() {
+interface HeaderProps {
+  collectedAt?: string
+}
+
+export function Header({ collectedAt }: HeaderProps) {
+  const formattedCollectedAt = collectedAt
+    ? dayjs(collectedAt).format("YYYY-MM-DD HH:mm")
+    : "-"
+
   return (
     <header className="border-b border-border">
       <div className="container mx-auto flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -10,7 +20,7 @@ export function Header() {
           </h1>
           <p className="text-sm text-muted-foreground">
             투자 실적 현황
-            <span className="ml-2 text-xs">기준일시: -</span>
+            <span className="ml-2 text-xs">기준일시: {formattedCollectedAt}</span>
           </p>
         </div>
         <MainNav />

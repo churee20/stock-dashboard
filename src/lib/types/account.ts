@@ -1,5 +1,5 @@
-// NOTE: Task 002(Supabase 스키마 설계)에서 생성된 DB 타입으로 교체될 선행 타입입니다.
-// PRD 6.2절의 개략 데이터 모델을 기준으로 작성되었습니다.
+// 정식 애플리케이션 타입입니다. PRD 6.2절 데이터 모델 기준.
+// DB 원시 Row 타입(snake_case)은 src/lib/types/database.ts, 변환 함수는 src/lib/types/mappers.ts 참고.
 
 export type AccountType = "연금" | "개인투자"
 

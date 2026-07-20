@@ -12,14 +12,15 @@ import { cn } from "@/lib/utils"
 
 interface PeriodTableProps {
   rows: PeriodTableRow[]
+  headerLabel?: string
 }
 
-export function PeriodTable({ rows }: PeriodTableProps) {
+export function PeriodTable({ rows, headerLabel = "날짜" }: PeriodTableProps) {
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>날짜</TableHead>
+          <TableHead>{headerLabel}</TableHead>
           <TableHead>구분</TableHead>
           <TableHead className="text-right">투자원금</TableHead>
           <TableHead className="text-right">현재금액</TableHead>

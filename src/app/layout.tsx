@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Header } from "@/components/layout/header";
+import { DUMMY_SNAPSHOTS } from "@/lib/dummy-data";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,18 +19,27 @@ export const metadata: Metadata = {
   description: "투자 실적 현황",
 };
 
+function selectLatestCollectedAt(): string | undefined {
+  return DUMMY_SNAPSHOTS.reduce<string | undefined>((latest, snapshot) => {
+    if (!latest || snapshot.collectedAt > latest) return snapshot.collectedAt
+    return latest
+  }, undefined)
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const latestCollectedAt = selectLatestCollectedAt()
+
   return (
     <html
       lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <Header />
+        <Header collectedAt={latestCollectedAt} />
         <main className="flex-1">{children}</main>
       </body>
     </html>
