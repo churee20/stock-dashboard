@@ -5,11 +5,13 @@ import { AccountRatioDonut } from "@/components/dashboard/account-ratio-donut"
 import { DashboardDetailTable } from "@/components/dashboard/dashboard-detail-table"
 import { PensionVsPersonalDonut } from "@/components/dashboard/pension-vs-personal-donut"
 import { SummaryCards } from "@/components/dashboard/summary-cards"
-import { DUMMY_ACCOUNTS, DUMMY_SNAPSHOTS } from "@/lib/dummy-data"
 import { selectLatestSnapshots } from "@/lib/dummy-data/select-latest"
+import { getAccounts, getAccountSnapshots } from "@/lib/supabase/queries"
 
-export default function DashboardPage() {
-  const latestSnapshots = selectLatestSnapshots(DUMMY_ACCOUNTS, DUMMY_SNAPSHOTS)
+export default async function DashboardPage() {
+  const accounts = await getAccounts()
+  const snapshots = await getAccountSnapshots()
+  const latestSnapshots = selectLatestSnapshots(accounts, snapshots)
 
   if (latestSnapshots.length === 0) {
     return (
@@ -26,7 +28,7 @@ export default function DashboardPage() {
     <div className="container mx-auto flex flex-col gap-6 px-4 py-8">
       <h1 className="text-2xl font-semibold text-foreground">현재 실적</h1>
 
-      <SummaryCards accounts={DUMMY_ACCOUNTS} snapshots={DUMMY_SNAPSHOTS} />
+      <SummaryCards accounts={accounts} snapshots={snapshots} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
@@ -35,7 +37,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <PensionVsPersonalDonut
-              accounts={DUMMY_ACCOUNTS}
+              accounts={accounts}
               snapshots={latestSnapshots}
             />
           </CardContent>
@@ -47,7 +49,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <AccountRatioDonut
-              accounts={DUMMY_ACCOUNTS}
+              accounts={accounts}
               snapshots={latestSnapshots}
             />
           </CardContent>
@@ -59,7 +61,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <AccountRatioBarList
-              accounts={DUMMY_ACCOUNTS}
+              accounts={accounts}
               snapshots={latestSnapshots}
             />
           </CardContent>
@@ -71,7 +73,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <AccountProfitRatioChart
-              accounts={DUMMY_ACCOUNTS}
+              accounts={accounts}
               snapshots={latestSnapshots}
             />
           </CardContent>
@@ -84,7 +86,7 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           <DashboardDetailTable
-            accounts={DUMMY_ACCOUNTS}
+            accounts={accounts}
             snapshots={latestSnapshots}
           />
         </CardContent>

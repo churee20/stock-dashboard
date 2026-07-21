@@ -63,7 +63,7 @@
   - ✅ 월별 화면: 조회 조건(년도/시작월/종료월) + 월별 꺾은선 그래프 + 월별 실적 테이블 구현
   - ✅ 반응형 디자인 적용 및 전체 화면 간 탭 내비게이션 플로우 검증 (데스크톱 브라우저 실측, 375px는 코드 검토로 대체)
 
-### Phase 3: 핵심 기능 구현
+### Phase 3: 핵심 기능 구현 ✅
 
 - **Task 002: 타입 정의 및 DB 스키마 설계** ✅ - 완료
   - ✅ `Account`, `AccountSnapshot` TypeScript 인터페이스 정의 (계좌명, 계좌구분, 투자원금, 현재금액, 수익금액, 수익률, 수집일 등)
@@ -71,27 +71,34 @@
   - ✅ 주별/월별 집계용 DB 뷰 또는 쿼리 인터페이스 설계 (마지막 수집일 스냅샷 기준, SQL 참고 쿼리로 문서화)
   - ✅ API 응답 타입 정의 (대시보드 요약, 일/주/월별 조회 응답)
 
-- **Task 005: Supabase 연동 및 조회 API 개발** - 우선순위
-  - Supabase 프로젝트 생성 및 `accounts`, `account_snapshots` 테이블/마이그레이션 작성
-  - 서버 사이드 Supabase 클라이언트 구성 (Service Role Key는 서버에서만 사용, 클라이언트에는 읽기 전용 키만 노출)
-  - 대시보드 요약 조회 API/쿼리 구현 (최신 스냅샷 기준 요약 카드, 비중 계산)
-  - 일별/주별/월별 조회 API/쿼리 구현 (주별·월별은 마지막 수집일 스냅샷 집계 규칙 적용)
-  - 더미 데이터를 실제 Supabase 조회로 교체
-  - Playwright MCP를 활용한 조회 API 통합 테스트 (조회 조건 변경 시 데이터 갱신 검증)
+- **Task 005: Supabase 연동 및 조회 API 개발** ✅ - 완료
+  - ✅ 실제 Supabase 프로젝트(xbyqkektljnhyveqvfgx)에 `accounts`, `account_snapshots` 테이블 마이그레이션 적용 및 개발용 시드 데이터(계좌 8종 + 최근 30일 스냅샷 240행) 삽입 (사용자 승인 완료)
+  - ✅ 서버 사이드 Supabase 클라이언트 구성 (`createSupabaseServerClient`, anon/publishable key만 사용, Service Role Key 미발급)
+  - ✅ `getAccounts()`/`getAccountSnapshots()` 조회 함수 구현 (Row→App 타입 매핑 재사용)
+  - ✅ 4개 page.tsx + layout.tsx를 async function으로 전환해 더미 데이터를 실제 Supabase 조회로 교체
+  - ✅ 브라우저 자동화(claude-in-chrome)로 통합 테스트: 4개 화면 실 데이터 렌더링, 조회조건(계좌 필터) 변경 시 갱신, 상세 테이블 그룹 소계=전체 합계 정합성 확인
+  - ⚠️ RLS 미적용 상태 유지(추후 보안 강화 재검토 필요) — `docs/tasks/TASK-005.md` 참고
 
-- **Task 006: Google Sheets 수집 파이프라인 및 스케줄 등록 (Vercel Cron 기반)**
-  - Google 서비스 계정 인증으로 Google Sheets API 연동 ("1.투자현황(현재)", "4.계좌별 비중" 탭 파싱)
-  - 시트 데이터를 `accounts`/`account_snapshots` upsert 로직으로 변환 (동일 계좌+동일 수집일 갱신, 신규 계좌 자동 등록)
-  - 시트 구조 검증 및 수집 실패 시 로그 기록 처리
-  - `/api/cron/collect` API Route 구현 및 Vercel Cron 스케줄 등록 (1일 1회 이상 실행, PC 전원 상태 무관 자동 실행)
-  - Google 서비스 계정 키 및 Supabase 접근 키를 환경변수로 안전하게 분리 관리
-  - Playwright MCP로는 스케줄 자동 트리거 자체는 검증 불가하므로, API 수동 호출 후 Supabase 데이터 적재 결과 검증 (수집 성공 로그, upsert 정합성 확인)
+- **Task 006: Google Sheets 수집 파이프라인 및 스케줄 등록 (Vercel Cron 기반)** ✅ - 완료(실연동 포함)
+  - ✅ Google 서비스 계정 인증(JWT)으로 Google Sheets API 클라이언트 구현, "1.투자 현황(현재)" 탭 파서 구현(계좌당 여러 종목 행 + "합 계" 요약 행 구조 실측 반영, 그룹 합산 행 제외, 연금/개인투자 자동 분류)
+  - ✅ 시트 데이터를 `accounts`/`account_snapshots` upsert 로직으로 변환 (`syncAccounts`로 신규 계좌 자동 등록, `upsertSnapshots`가 `(account_id, snapshot_date)` 기준 upsert)
+  - ✅ `/api/cron/collect` API Route 구현(`CRON_SECRET` 인증 + `?dryRun=true` 진단 모드), anon/publishable key 재사용(Service Role Key 미발급)
+  - ✅ **실제 서비스 계정으로 Supabase에 실 데이터 반영 완료**: 8개 계좌, 오늘자 스냅샷 8행 upsert. 대시보드 총 현재금액이 시트 "전체(합계)" 값과 정확히 일치 확인 (`docs/tasks/TASK-006-2.md` 참고)
+  - ⚠️ **Vercel Cron 실제 등록은 범위 밖** — Task 008(배포)에서 진행. 그전까지는 로컬에서 수동 호출 필요
 
-- **Task 006-1: 핵심 기능 통합 테스트**
-  - Playwright MCP를 사용한 전체 사용자 플로우 테스트 (대시보드 진입 → 일/주/월별 화면 전환 → 조회 조건 변경)
-  - 실 Supabase 데이터 기준 상세 테이블 합계(그룹 소계/전체 합계)와 개별 계좌 합 일치 검증
-  - 데이터 미수집 상태(빈 상태 UI) 및 조회 기간 내 결측 데이터 처리 검증
-  - 에러 핸들링 테스트 (Supabase 연결 실패, 빈 응답 등 엣지 케이스)
+- **Task 006-1: 핵심 기능 통합 테스트** ✅ - 완료
+  - ✅ claude-in-chrome을 사용한 전체 사용자 플로우 재검증 (대시보드 진입 → 일/주/월별 화면 전환 → 계좌 필터 변경 시 갱신 확인)
+  - ✅ 실 Supabase 데이터 기준 상세 테이블 합계(그룹 소계/전체 합계)와 개별 계좌 합 일치 재검증
+  - ✅ 계좌 필터로 결과 0건을 유발해 빈 상태 UI(빈 차트/빈 테이블, 계좌 검색 빈 결과 메시지) 확인
+  - ✅ 에러 핸들링 코드 리뷰: 수집 API(`/api/cron/collect`)와 조회 화면이 완전히 분리된 경로라 수집 실패가 조회 화면에 영향을 주지 않는 구조 확인(PRD 7장 가용성 요구 충족)
+
+- **Task 006-2: Google Sheets 실제 연동 (서비스 계정 실측 및 DB 반영)** ✅ - 완료
+  - ✅ 사용자가 Google Cloud Console에서 서비스 계정 발급 및 API 활성화, `.env.local` 환경변수 입력
+  - ✅ dry-run 모드로 실제 시트 구조 조사 → 당초 가정과 크게 다른 구조(계좌당 종목 상세 행 + "합 계" 요약 행) 확인, 탭 이름도 공백 포함(`1.투자 현황(현재)`)으로 정정
+  - ✅ parser.ts를 상태기계 방식으로 재작성, 계좌명 대조 후 3개 계좌명 공백 불일치를 DB UPDATE로 통일, 사용자 요청으로 "은퇴 투자(삼성증권)" 명시적 제외
+  - ⚠️ **1차 실제 반영 시 계좌명+세부식별자 통짜 저장 방식 차이로 중복 계좌 2개가 생성되는 사고 발생** → 즉시 원인 파악, 삭제 후 스키마 통일, 재실행으로 정상화(`accountCount:8, newAccountCount:0`)
+  - ✅ 이중 괄호 표시 이슈 추가 발견 및 수정(계좌번호 필드 정규화)
+  - ✅ 4개 화면 실데이터 반영 확인, `docs/tasks/TASK-006.md`/`TASK-006-2.md` 실측값 갱신 완료
 
 ### Phase 4: 고급 기능 및 최적화
 
@@ -109,5 +116,5 @@
 
 ---
 
-**📅 최종 업데이트**: 2026-07-20
-**📊 진행 상황**: Phase 1, 2 완료, Phase 3 진행 중 (4/9 Tasks 완료)
+**📅 최종 업데이트**: 2026-07-21
+**📊 진행 상황**: Phase 1, 2, 3 완료, Phase 4 착수 예정 (8/10 Tasks 완료) — Google Sheets 실데이터 연동 완료, Vercel Cron 실등록은 Task 008에서 진행

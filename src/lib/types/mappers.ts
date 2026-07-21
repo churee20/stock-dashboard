@@ -1,5 +1,6 @@
 import type { AccountRow, AccountSnapshotRow } from "@/lib/types/database"
 import type { Account, AccountSnapshot, AccountType } from "@/lib/types/account"
+import type { SheetAccountRow } from "@/lib/types/sheets"
 
 export function mapAccountRowToAccount(row: AccountRow): Account {
   return {
@@ -23,5 +24,32 @@ export function mapSnapshotRowToSnapshot(
     profitAmount: row.profit_amount,
     profitRate: row.profit_rate,
     collectedAt: row.collected_at,
+  }
+}
+
+export function mapSheetRowToAccountInsert(
+  sheetRow: SheetAccountRow
+): Omit<AccountRow, "id" | "created_at"> {
+  return {
+    account_name: sheetRow.accountName,
+    account_no_masked: sheetRow.accountNoMasked,
+    account_type: sheetRow.accountType,
+  }
+}
+
+export function mapSheetRowToSnapshotInsert(
+  sheetRow: SheetAccountRow,
+  accountId: string,
+  snapshotDate: string,
+  collectedAt: string
+): Omit<AccountSnapshotRow, "id"> {
+  return {
+    account_id: accountId,
+    snapshot_date: snapshotDate,
+    principal_amount: sheetRow.principalAmount,
+    current_amount: sheetRow.currentAmount,
+    profit_amount: sheetRow.profitAmount,
+    profit_rate: sheetRow.profitRate,
+    collected_at: collectedAt,
   }
 }

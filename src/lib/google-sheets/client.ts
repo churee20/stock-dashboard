@@ -1,0 +1,43 @@
+import { google, sheets_v4 } from "googleapis"
+
+// 서버 사이드 전용: 서비스 계정(JWT) 인증으로 Google Sheets API 클라이언트를 생성합니다.
+export function createGoogleSheetsClient(): sheets_v4.Sheets {
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
+  const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
+
+  if (!email || !privateKey) {
+    throw new Error("Google 서비스 계정 환경변수가 설정되지 않았습니다")
+  }
+
+  const auth = new google.auth.JWT({
+    email,
+    // .env에는 개행이 \n 문자열 그대로 저장되므로 실제 개행으로 치환
+    key: privateKey.replace(/\\n/g, "\n"),
+    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
+  })
+
+  return google.sheets({ version: "v4", auth })
+}
+
+export function getGoogleSheetId(): string {
+  const sheetId = process.env.GOOGLE_SHEET_ID
+  if (!sheetId) {
+    throw new Error("GOOGLE_SHEET_ID 환경변수가 설정되지 않았습니다")
+  }
+  return sheetId
+}
+
+// "1.투자 현황(현재)" 탭의 활성 데이터 범위(1~123행)를 2차원 문자열 배열로 읽어온다.
+export async function fetchInvestmentSheetRows(
+  range = "1.투자 현황(현재)!A1:O123"
+): Promise<string[][]> {
+  const sheets = createGoogleSheetsClient()
+  const spreadsheetId = getGoogleSheetId()
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range,
+  })
+
+  return (response.data.values ?? []) as string[][]
+}
