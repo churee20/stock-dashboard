@@ -1,13 +1,1 @@
-{
-  "type": "service_account",
-  "project_id": "stock-dashboard-503106",
-  "private_key_id": "3a4ec84a67d4c5c5f3e84c00464ece92e2fc3cc1",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCjgvrb1cPw7pDr\ncB4YOCCmkg3Ld708tkJgqbck9VVna0uOFSCnrGXEssG9Q9kkqaw2YQoakJx/tB+q\nrmqckbAecIam+YBuyRJlPkOnQId79nCbvN3kA5ok3hiMnwrdm4IpUvJqocr5dAUc\nECTiMpR5FJkZar+SmuLOVSkGk0GHqDtrzjrOivgVuMGR0oea2rkL8eGfijFCkWg3\nvViXxAf9UPAdIXS+n9Q3hKf9zyHGj7Mu0XacTvtSZ8PQBx2XXR44nIALboz4qTVA\nRvaXkj8KkznLUEXfInH9uu/owPwMMT4raDV5XahAUa2YR0+AxzZB/6UWC3Lb37zt\nDbIlavpTAgMBAAECggEACvObZL0BFjKMX1CPm3Sq7y0qIl4fPSFB+eJ0I1QRR89+\nbIJKwSBBYrbMViZktVlt8Oh3+kaETONeGZr8BgeWAbvssONWMFVkV4aflmSyjmF3\nsl6oh/ybxutfPo/qdORVB/qHxQ+YHjQgoXwNVF8p5aA1DuhA84tPNJ2slUWopnLJ\nOALSrd7xGVLydizHUyhs9DG1YHcagRUhTeoaFG1zwQEhAyynYgLMWQDmFsu/Ld0r\nLOOs/OjWyopp6qDESnmEJpkctcrwDu+Pt+ZXei1EZ91pAg6NHt+qa+fY1efRG9vj\nhOhitGVQmtBoyTWH/jmgnR8eB0RcHT7BsgyMPHHSmQKBgQDTia12Slk606T5gNer\n+yFWHy/FwPBqprnbCVqLcJAMAkshzYq3mJRCMgaepPZYATLcfPYwKk/W+dr4s83/\n+MGOAEPdvccoeJItBl4/8DOsi5AKtyjn+gLrONZ+9szPfSuaW+nNVku7lKQiHfRa\nBtss+CFqJYL1dKJzMbNy3Upa6QKBgQDF4SJUyo0wOPKFmjlvtGJk5piND3mOJKe8\nIILR55Kv38spxQmgvJcckxTR7kZYediJAf+O2Ij40PiLPw8okeAzKYvoyjCSfmu8\nAMA+8uj2kTglkwcTZPIxncXAEm4BenbKKx8iBMzfVjUqGqFFroy4UxG/govZqTU+\nQQKS+Qpt2wKBgFOmkg3BAOAeaZKwvJipylkAJCgTT/8cx0oyvLd/X7cgAQ3w9fX8\nRESY+70ohrHuZ2qBj+kkEkZ0r37Bu6iJeiDpQe0h6uu6IjPj3Mlz9zs4RVG3dFmn\nqBfUdh3nAr7aRK/ZwO8OPQyEjxNevQ4MwAdcZ/pNsyfVY5giA1Bc6dZhAoGAKn6Q\nmtjsvSBdpKdcEksQnk6PECv0lLv2cYYh0eYDMFXFEXFJAgW+BdroK7UZ0kJIaBPP\nx+NkdtqZpX2jSbkaBqKzcwiIqc0QYc1fe6U6tki1YAxVBqs0/8a8AuVyTkr4W64q\n/2k8ffHLdQFHBOnZOnRMaW4ljlayIm5fmSR2QuUCgYAu7EAOTaJv4XZj9ssFmzKF\nxFNDcowx1aYAIPYvib40CcdC4i1EqHJyF8NuDLBZwj80PAHOkdBt8qcq5KDGjjh/\nGEE6CKTe7kKNMvYLG3h41lK9Us3N2WMope+Vonr/eVzrXo/cGjTcS13o4Zo/Uy9y\nRlHDcnOeoz+9578Uu9mo9A==\n-----END PRIVATE KEY-----\n",
-  "client_email": "stock-admin@stock-dashboard-503106.iam.gserviceaccount.com",
-  "client_id": "112591970240376062786",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/stock-admin%40stock-dashboard-503106.iam.gserviceaccount.com",
-  "universe_domain": "googleapis.com"
-}
+
