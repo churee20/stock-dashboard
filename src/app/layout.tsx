@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Header } from "@/components/layout/header";
-import { getAccountSnapshots } from "@/lib/supabase/queries";
-import type { AccountSnapshot } from "@/lib/types/account";
+import { getLatestCollectedAt } from "@/lib/supabase/queries";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -20,20 +19,17 @@ export const metadata: Metadata = {
   description: "투자 실적 현황",
 };
 
-function selectLatestCollectedAt(snapshots: AccountSnapshot[]): string | undefined {
-  return snapshots.reduce<string | undefined>((latest, snapshot) => {
-    if (!latest || snapshot.collectedAt > latest) return snapshot.collectedAt
-    return latest
-  }, undefined)
-}
-
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const snapshots = await getAccountSnapshots()
-  const latestCollectedAt = selectLatestCollectedAt(snapshots)
+  let latestCollectedAt: string | undefined
+  try {
+    latestCollectedAt = await getLatestCollectedAt()
+  } catch {
+    latestCollectedAt = undefined
+  }
 
   return (
     <html

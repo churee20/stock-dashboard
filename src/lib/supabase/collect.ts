@@ -1,10 +1,53 @@
 import { createSupabaseServerClient } from "@/lib/supabase/client"
-import type { AccountRow } from "@/lib/types/database"
+import type { AccountRow, AccountSnapshotRow } from "@/lib/types/database"
 import type { SheetAccountRow } from "@/lib/types/sheets"
 import {
   mapSheetRowToAccountInsert,
   mapSheetRowToSnapshotInsert,
 } from "@/lib/types/mappers"
+
+// 시트 원본값과 DB에 upsert되는 값이 다르면 경고만 남긴다(수집 흐름은 중단하지 않음).
+// 현재 parser.ts는 반올림 없이 Number() 그대로 저장하므로 정상 상황에서는 항상 일치해야 하며,
+// 향후 시트 서식/반올림 정책이 바뀌었을 때 조기 발견하기 위한 안전장치다.
+function verifyRounding(
+  sheetRow: SheetAccountRow,
+  snapshotInsert: Omit<AccountSnapshotRow, "id">
+): void {
+  const fields: Array<{
+    field: keyof SheetAccountRow
+    sheetValue: number
+    dbValue: number
+  }> = [
+    {
+      field: "principalAmount",
+      sheetValue: sheetRow.principalAmount,
+      dbValue: snapshotInsert.principal_amount,
+    },
+    {
+      field: "currentAmount",
+      sheetValue: sheetRow.currentAmount,
+      dbValue: snapshotInsert.current_amount,
+    },
+    {
+      field: "profitAmount",
+      sheetValue: sheetRow.profitAmount,
+      dbValue: snapshotInsert.profit_amount,
+    },
+    {
+      field: "profitRate",
+      sheetValue: sheetRow.profitRate,
+      dbValue: snapshotInsert.profit_rate,
+    },
+  ]
+
+  for (const { field, sheetValue, dbValue } of fields) {
+    if (sheetValue !== dbValue) {
+      console.warn(
+        `[collect] 반올림 불일치: account=${sheetRow.accountName} field=${field} sheet=${sheetValue} db=${dbValue}`
+      )
+    }
+  }
+}
 
 export interface CollectResult {
   accountCount: number
@@ -64,7 +107,14 @@ export async function upsertSnapshots(
     if (!accountId) {
       throw new Error(`계좌 ID를 찾을 수 없습니다: ${row.accountName}`)
     }
-    return mapSheetRowToSnapshotInsert(row, accountId, snapshotDate, collectedAt)
+    const snapshotInsert = mapSheetRowToSnapshotInsert(
+      row,
+      accountId,
+      snapshotDate,
+      collectedAt
+    )
+    verifyRounding(row, snapshotInsert)
+    return snapshotInsert
   })
 
   const { error } = await supabase

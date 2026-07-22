@@ -102,9 +102,14 @@ function buildPeriodTableRows(
 }
 
 function defaultDateRange(): DateRange {
-  const to = dayjs("2026-07-16")
+  const to = dayjs()
   const from = to.subtract(29, "day")
   return { from: from.toDate(), to: to.toDate() }
+}
+
+function defaultMonthRange(): MonthRangeValue {
+  const today = dayjs()
+  return { year: today.year(), startMonth: 1, endMonth: today.month() + 1 }
 }
 
 function toDateString(date: Date | undefined): string {
@@ -122,11 +127,11 @@ export function PeriodViewContainer({
   const [dateRange, setDateRange] = useState<DateRange | undefined>(
     defaultDateRange()
   )
-  const [monthRange, setMonthRange] = useState<MonthRangeValue>({
-    year: 2026,
-    startMonth: 1,
-    endMonth: 7,
-  })
+  const [monthRange, setMonthRange] = useState<MonthRangeValue>(
+    defaultMonthRange()
+  )
+  const currentYear = dayjs().year()
+  const yearOptions = [currentYear - 2, currentYear - 1, currentYear]
 
   const filteredAccounts = useMemo(
     () => accounts.filter((a) => selectedAccountIds.includes(a.id)),
@@ -191,7 +196,7 @@ export function PeriodViewContainer({
           <MonthRangeSelect
             value={monthRange}
             onChange={setMonthRange}
-            yearOptions={[2024, 2025, 2026]}
+            yearOptions={yearOptions}
           />
         </div>
       ) : (

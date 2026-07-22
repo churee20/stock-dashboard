@@ -1,4 +1,5 @@
 import { SummaryCard } from "@/components/dashboard/summary-card"
+import { formatPercent } from "@/lib/format/round"
 import type { Account, AccountSnapshot } from "@/lib/types/account"
 
 interface SummaryCardsProps {
@@ -31,7 +32,7 @@ function formatCurrency(amount: number): string {
 function formatSigned(amount: number, unit: "amount" | "rate"): string {
   const formatted =
     unit === "rate"
-      ? `${Math.abs(amount).toFixed(2)}%`
+      ? formatPercent(amount)
       : `${Math.abs(amount).toLocaleString()}원`
 
   if (amount > 0) return `+${formatted}`

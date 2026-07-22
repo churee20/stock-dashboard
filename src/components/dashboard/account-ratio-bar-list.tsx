@@ -1,3 +1,4 @@
+import { formatPercent } from "@/lib/format/round"
 import type { AccountRatioItem } from "@/lib/types/dashboard"
 import type { Account, AccountSnapshot } from "@/lib/types/account"
 
@@ -58,7 +59,7 @@ export function AccountRatioBarList({
               </span>
             </span>
             <span className="tabular-nums text-muted-foreground">
-              {item.amount.toLocaleString()}원 ({item.ratio.toFixed(1)}%)
+              {item.amount.toLocaleString()}원 ({formatPercent(item.ratio, 1)})
             </span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
