@@ -1,16 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { AccountProfitRatioChart } from "@/components/dashboard/account-profit-ratio-chart"
 import { AccountRatioBarList } from "@/components/dashboard/account-ratio-bar-list"
-import { AccountRatioDonut } from "@/components/dashboard/account-ratio-donut"
+import { AssetClassRatioDonut } from "@/components/dashboard/asset-class-ratio-donut"
 import { DashboardDetailTable } from "@/components/dashboard/dashboard-detail-table"
 import { PensionVsPersonalDonut } from "@/components/dashboard/pension-vs-personal-donut"
 import { SummaryCards } from "@/components/dashboard/summary-cards"
 import { selectLatestSnapshots } from "@/lib/dummy-data/select-latest"
-import { getAccounts, getAccountSnapshots } from "@/lib/supabase/queries"
+import {
+  getAccounts,
+  getAccountSnapshots,
+  getLatestAssetClassSnapshots,
+} from "@/lib/supabase/queries"
 
 export default async function DashboardPage() {
   const accounts = await getAccounts()
   const snapshots = await getAccountSnapshots()
+  const assetClassSnapshots = await getLatestAssetClassSnapshots()
   const latestSnapshots = selectLatestSnapshots(accounts, snapshots)
 
   if (latestSnapshots.length === 0) {
@@ -48,10 +53,7 @@ export default async function DashboardPage() {
             <CardTitle>전체 계좌 자산 비중</CardTitle>
           </CardHeader>
           <CardContent>
-            <AccountRatioDonut
-              accounts={accounts}
-              snapshots={latestSnapshots}
-            />
+            <AssetClassRatioDonut snapshots={assetClassSnapshots} />
           </CardContent>
         </Card>
 

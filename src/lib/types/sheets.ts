@@ -11,3 +11,10 @@ export interface SheetAccountRow {
   profitAmount: number
   profitRate: number
 }
+
+// Google Sheets "4.계좌별 비중" 탭 [전체 계좌 비중] 섹션 한 행을 파싱한 중간 DTO입니다.
+// "합계" 라벨 행과 자산군명이 없는 행은 파싱 단계에서 제외됩니다.
+export interface SheetAssetClassRow {
+  assetClass: string
+  currentAmount: number
+}

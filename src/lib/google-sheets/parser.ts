@@ -1,11 +1,11 @@
 import type { AccountType } from "@/lib/types/account"
-import type { SheetAccountRow } from "@/lib/types/sheets"
+import type { SheetAccountRow, SheetAssetClassRow } from "@/lib/types/sheets"
 
 // "1.투자 현황(현재)" 탭 컬럼 인덱스(0-base, 실측 확정값).
 // 계좌명은 계좌의 첫 종목 행에만 등장하고, 계좌 합계는 "합 계" 라벨이 있는 행에 담긴다.
 const COLUMN = {
   ACCOUNT_NAME: 1,
-  PRINCIPAL_AMOUNT: 10,
+  PRINCIPAL_AMOUNT_CELL: 2,
   CURRENT_AMOUNT: 12,
   PROFIT_AMOUNT: 13,
   PROFIT_RATE: 14,
@@ -77,6 +77,7 @@ export function parseInvestmentSheet(rows: string[][]): SheetAccountRow[] {
   const result: SheetAccountRow[] = []
   let currentAccountName = ""
   let currentAccountNoMasked = ""
+  let currentPrincipalAmount: number | null = null
 
   for (const row of rows) {
     const labelCell = row[COLUMN.ACCOUNT_NAME]?.trim() ?? ""
@@ -89,6 +90,7 @@ export function parseInvestmentSheet(rows: string[][]): SheetAccountRow[] {
       const { accountName, accountNoMasked } = splitAccountNameCell(labelCell)
       currentAccountName = accountName
       currentAccountNoMasked = accountNoMasked
+      currentPrincipalAmount = parseAmount(row[COLUMN.PRINCIPAL_AMOUNT_CELL])
       continue
     }
 
@@ -99,17 +101,18 @@ export function parseInvestmentSheet(rows: string[][]): SheetAccountRow[] {
     if (isExcludedAccount(currentAccountName, currentAccountNoMasked)) {
       currentAccountName = ""
       currentAccountNoMasked = ""
+      currentPrincipalAmount = null
       continue
     }
 
-    const principalAmount = parseAmount(row[COLUMN.PRINCIPAL_AMOUNT])
     const currentAmount = parseAmount(row[COLUMN.CURRENT_AMOUNT])
     const profitAmount = parseAmount(row[COLUMN.PROFIT_AMOUNT])
     const profitRate = parseAmount(row[COLUMN.PROFIT_RATE])
 
-    if (principalAmount === null || currentAmount === null) {
+    if (currentPrincipalAmount === null || currentAmount === null) {
       currentAccountName = ""
       currentAccountNoMasked = ""
+      currentPrincipalAmount = null
       continue
     }
 
@@ -117,7 +120,7 @@ export function parseInvestmentSheet(rows: string[][]): SheetAccountRow[] {
       accountName: currentAccountName,
       accountNoMasked: currentAccountNoMasked,
       accountType: resolveAccountType(currentAccountName),
-      principalAmount,
+      principalAmount: currentPrincipalAmount,
       currentAmount,
       profitAmount: profitAmount ?? 0,
       profitRate: profitRate ?? 0,
@@ -125,6 +128,39 @@ export function parseInvestmentSheet(rows: string[][]): SheetAccountRow[] {
 
     currentAccountName = ""
     currentAccountNoMasked = ""
+    currentPrincipalAmount = null
+  }
+
+  return result
+}
+
+// "4.계좌별 비중" 탭 컬럼 인덱스(0-base, 실측 확정값). A열은 항상 빈 값, B열은 "계좌"(빈 값).
+const ASSET_CLASS_COLUMN = {
+  ASSET_CLASS: 2,
+  CURRENT_AMOUNT: 3,
+} as const
+
+// 자산군 라벨이 아닌 행(헤더 "자산군", 합계 라벨, 빈 라벨)은 개별 자산군으로 취급하지 않는다.
+const ASSET_CLASS_EXCLUDED_LABELS = ["자산군", "합계"]
+
+// "4.계좌별 비중" 탭 [전체 계좌 비중] 섹션 원시 행 배열을 자산군별 요약 SheetAssetClassRow[]로 변환하는 순수 함수.
+// 헤더 행("계좌"/"자산군"/"현재금액(원)"/...)과 "합계" 라벨 행, 자산군명이 없는 행은 결과에서 제외한다.
+export function parseAssetClassRatio(rows: string[][]): SheetAssetClassRow[] {
+  const result: SheetAssetClassRow[] = []
+
+  for (const row of rows) {
+    const assetClass = row[ASSET_CLASS_COLUMN.ASSET_CLASS]?.trim() ?? ""
+
+    if (assetClass === "" || ASSET_CLASS_EXCLUDED_LABELS.includes(assetClass)) {
+      continue
+    }
+
+    const currentAmount = parseAmount(row[ASSET_CLASS_COLUMN.CURRENT_AMOUNT])
+    if (currentAmount === null) {
+      continue
+    }
+
+    result.push({ assetClass, currentAmount })
   }
 
   return result

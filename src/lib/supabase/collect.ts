@@ -1,8 +1,9 @@
 import { createSupabaseServerClient } from "@/lib/supabase/client"
 import type { AccountRow, AccountSnapshotRow } from "@/lib/types/database"
-import type { SheetAccountRow } from "@/lib/types/sheets"
+import type { SheetAccountRow, SheetAssetClassRow } from "@/lib/types/sheets"
 import {
   mapSheetRowToAccountInsert,
+  mapSheetRowToAssetClassSnapshotInsert,
   mapSheetRowToSnapshotInsert,
 } from "@/lib/types/mappers"
 
@@ -53,6 +54,7 @@ export interface CollectResult {
   accountCount: number
   newAccountCount: number
   upsertedSnapshotCount: number
+  upsertedAssetClassCount: number
 }
 
 // 시트에 등장한 계좌명을 기존 accounts와 매칭하고, 없는 계좌는 신규 등록한다.
@@ -125,9 +127,30 @@ export async function upsertSnapshots(
   return { upserted: payload.length }
 }
 
-// Google Sheets에서 읽은 계좌 데이터를 Supabase에 반영하는 진입점.
+// asset_class_snapshots에 (asset_class, snapshot_date) 기준 upsert를 수행한다.
+export async function upsertAssetClassSnapshots(
+  assetClassRows: SheetAssetClassRow[],
+  snapshotDate: string,
+  collectedAt: string
+): Promise<{ upserted: number }> {
+  const supabase = createSupabaseServerClient()
+
+  const payload = assetClassRows.map((row) =>
+    mapSheetRowToAssetClassSnapshotInsert(row, snapshotDate, collectedAt)
+  )
+
+  const { error } = await supabase
+    .from("asset_class_snapshots")
+    .upsert(payload, { onConflict: "asset_class,snapshot_date" })
+  if (error) throw error
+
+  return { upserted: payload.length }
+}
+
+// Google Sheets에서 읽은 계좌 데이터와 자산군 비중 데이터를 Supabase에 반영하는 진입점.
 export async function collectFromSheet(
-  sheetRows: SheetAccountRow[]
+  sheetRows: SheetAccountRow[],
+  assetClassRows: SheetAssetClassRow[]
 ): Promise<CollectResult> {
   const now = new Date()
   const snapshotDate = now.toISOString().slice(0, 10)
@@ -140,10 +163,16 @@ export async function collectFromSheet(
     snapshotDate,
     collectedAt
   )
+  const { upserted: upsertedAssetClassCount } = await upsertAssetClassSnapshots(
+    assetClassRows,
+    snapshotDate,
+    collectedAt
+  )
 
   return {
     accountCount: accountIdByName.size,
     newAccountCount,
     upsertedSnapshotCount: upserted,
+    upsertedAssetClassCount,
   }
 }

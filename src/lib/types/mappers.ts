@@ -1,6 +1,7 @@
-import type { AccountRow, AccountSnapshotRow } from "@/lib/types/database"
+import type { AccountRow, AccountSnapshotRow, AssetClassSnapshotRow } from "@/lib/types/database"
 import type { Account, AccountSnapshot, AccountType } from "@/lib/types/account"
-import type { SheetAccountRow } from "@/lib/types/sheets"
+import type { AssetClassSnapshot } from "@/lib/types/dashboard"
+import type { SheetAccountRow, SheetAssetClassRow } from "@/lib/types/sheets"
 
 export function mapAccountRowToAccount(row: AccountRow): Account {
   return {
@@ -50,6 +51,31 @@ export function mapSheetRowToSnapshotInsert(
     current_amount: sheetRow.currentAmount,
     profit_amount: sheetRow.profitAmount,
     profit_rate: sheetRow.profitRate,
+    collected_at: collectedAt,
+  }
+}
+
+export function mapAssetClassSnapshotRowToItem(
+  row: AssetClassSnapshotRow
+): AssetClassSnapshot {
+  return {
+    id: row.id,
+    assetClass: row.asset_class,
+    snapshotDate: row.snapshot_date,
+    currentAmount: row.current_amount,
+    collectedAt: row.collected_at,
+  }
+}
+
+export function mapSheetRowToAssetClassSnapshotInsert(
+  sheetRow: SheetAssetClassRow,
+  snapshotDate: string,
+  collectedAt: string
+): Omit<AssetClassSnapshotRow, "id"> {
+  return {
+    asset_class: sheetRow.assetClass,
+    snapshot_date: snapshotDate,
+    current_amount: sheetRow.currentAmount,
     collected_at: collectedAt,
   }
 }

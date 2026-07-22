@@ -24,21 +24,27 @@
 ## 구현 사항
 
 ### 1. 화면 표시용 반올림 공용 유틸 신설 및 적용
-- [ ] `src/lib/format/round.ts` 생성: `roundTo2()`, `formatPercent()` 순수 함수
-- [ ] `summary-cards.tsx`/`table-row-profit-cell.tsx`/`account-ratio-bar-list.tsx`의 `toFixed(2)` 직접 호출을 유틸로 교체
-- [ ] DB 저장값은 변경하지 않음(표시 레이어만 통일)
+- [x] `src/lib/format/round.ts` 생성: `roundTo2()`, `formatPercent()` 순수 함수
+- [x] `summary-cards.tsx`/`table-row-profit-cell.tsx`/`account-ratio-bar-list.tsx`의 `toFixed(2)` 직접 호출을 유틸로 교체
+- [x] DB 저장값은 변경하지 않음(표시 레이어만 통일)
+
+`account-ratio-bar-list.tsx`는 기존 소수 1자리 표시(`toFixed(1)`)를 유지하기 위해 `formatPercent(value, 1)`로 자릿수를 명시적으로 전달했다(`formatPercent`는 `digits` 기본값 2).
 
 ### 2. 수집 시 원본-DB 반올림 차이 검증 로그
-- [ ] `src/lib/supabase/collect.ts`에 시트 원본값과 upsert 값 비교 후 차이 시 `console.warn` 남기는 검증 함수 추가
-- [ ] 수집 흐름을 중단시키지 않음(경고만)
+- [x] `src/lib/supabase/collect.ts`에 시트 원본값과 upsert 값 비교 후 차이 시 `console.warn` 남기는 검증 함수 추가
+- [x] 수집 흐름을 중단시키지 않음(경고만)
+
+`verifyRounding()`이 `upsertSnapshots()` 내부 payload 생성 시점(upsert 직전)에 principalAmount/currentAmount/profitAmount/profitRate 4개 필드를 비교한다. 예외를 던지지 않고 `console.warn`만 남긴다.
 
 ### 3. 최종 수집 시각 전용 쿼리
-- [ ] `src/lib/supabase/queries.ts`에 `getLatestCollectedAt()` 추가(`order + limit(1)`)
-- [ ] `src/app/layout.tsx`가 `getAccountSnapshots()` 전체 조회 대신 이 함수 사용, `selectLatestCollectedAt()` 제거
+- [x] `src/lib/supabase/queries.ts`에 `getLatestCollectedAt()` 추가(`order + limit(1)`)
+- [x] `src/app/layout.tsx`가 `getAccountSnapshots()` 전체 조회 대신 이 함수 사용, `selectLatestCollectedAt()` 제거
 
 ### 4. 전역 error.tsx 폴백 UI
-- [ ] `src/app/error.tsx` 신설(재시도 버튼 포함)
-- [ ] `layout.tsx`의 `getLatestCollectedAt()` 호출을 try/catch로 감싸 실패 시 `undefined` 폴백
+- [x] `src/app/error.tsx` 신설(재시도 버튼 포함)
+- [x] `layout.tsx`의 `getLatestCollectedAt()` 호출을 try/catch로 감싸 실패 시 `undefined` 폴백
+
+검증: `.env.local`의 `NEXT_PUBLIC_SUPABASE_URL`을 임시로 무효한 값으로 바꿔 실제 조회 실패를 유발한 뒤, 브라우저로 `error.tsx`가 "데이터를 불러오지 못했습니다" + 다시 시도 버튼을 정상 렌더링하고 헤더는 "기준일시: -"로 깨지지 않고 폴백되는 것을 확인. 검증 직후 원복.
 
 ### 5. ISO 주차/월 집계 기준 문서화 및 경계값 검증
 - [x] `aggregate.ts`/`period-view-container.tsx`의 연말/연초 경계 케이스 검증
@@ -67,23 +73,25 @@
 - **결론**: 기존 구현이 이미 올바르게 동작하므로 코드 변경 없음(회귀 없음)
 
 ### 6. 미사용 date-fns 제거
-- [ ] 사용처 없음 재확인 후 `npm uninstall date-fns`
+- [x] 사용처 없음 재확인 후 `npm uninstall date-fns`
+
+`package.json`의 직접 의존성에서는 완전히 제거되었다. `package-lock.json`에는 `react-day-picker`의 전이 의존성으로 `date-fns`/`@date-fns/tz`가 남아있으나 이는 정상이다.
 
 ### 7. 문서화
-- [ ] 본 문서 구현 완료 후 갱신
-- [ ] `docs/ROADMAP.md` Task 007 항목 완료 표시
+- [x] 본 문서 구현 완료 후 갱신
+- [x] `docs/ROADMAP.md` Task 007 항목 완료 표시
 
 ---
 
 ## 수락 기준
 
-1. [ ] 화면 수익률 표시가 공용 유틸(`roundTo2`/`formatPercent`)을 통해 통일되고, 기존 표시값과 차이 없음
-2. [ ] 수집 시 원본-DB 값 차이가 있으면 경고 로그가 남고, 수집 자체는 실패하지 않음
-3. [ ] `getLatestCollectedAt()`이 전량 조회가 아닌 단건 조회로 동작하고, 헤더 기준일시 표시가 기존과 동일
-4. [ ] Supabase 조회 실패 시 `error.tsx`가 정상 렌더링되고, 헤더는 깨지지 않고 `-`로 폴백
-5. [ ] 주차/월 집계 경계값 검증 결과가 문서화되고 회귀 없음
-6. [ ] `date-fns` 제거 후 빌드 정상
-7. [ ] `npm run typecheck`, `npm run lint`, `npm run build` 통과, any 타입 미사용
+1. [x] 화면 수익률 표시가 공용 유틸(`roundTo2`/`formatPercent`)을 통해 통일되고, 기존 표시값과 차이 없음
+2. [x] 수집 시 원본-DB 값 차이가 있으면 경고 로그가 남고, 수집 자체는 실패하지 않음
+3. [x] `getLatestCollectedAt()`이 전량 조회가 아닌 단건 조회로 동작하고, 헤더 기준일시 표시가 기존과 동일
+4. [x] Supabase 조회 실패 시 `error.tsx`가 정상 렌더링되고, 헤더는 깨지지 않고 `-`로 폴백
+5. [x] 주차/월 집계 경계값 검증 결과가 문서화되고 회귀 없음
+6. [x] `date-fns` 제거 후 빌드 정상
+7. [x] `npm run typecheck`, `npm run lint`, `npm run build` 통과, any 타입 미사용
 
 ---
 
@@ -107,6 +115,15 @@ package.json
 docs/tasks/TASK-007.md
 docs/ROADMAP.md
 ```
+
+---
+
+## 검증 결과
+
+- `npm run typecheck`/`npm run lint`/`npm run build` 모두 통과(any 타입 미사용)
+- 브라우저(localhost:3000)로 4개 화면(`/`, `/daily`, `/weekly`, `/monthly`) 재확인: 반올림 표시, 헤더 기준일시, error.tsx 폴백, 주차 라벨 모두 회귀 없음
+- `error.tsx` 폴백은 `NEXT_PUBLIC_SUPABASE_URL`을 임시로 무효화해 실제 조회 실패를 유발하는 방식으로 검증(검증 직후 즉시 원복)
+- ISO 주차 경계값은 스크립트로 연말/연초 7개 날짜를 실측 검증(본 문서 4번 항목 표 참고)
 
 ---
 

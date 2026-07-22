@@ -24,3 +24,11 @@ export interface AccountRatioItem {
   amount: number
   ratio: number
 }
+
+export interface AssetClassSnapshot {
+  id: string
+  assetClass: string
+  snapshotDate: string
+  currentAmount: number
+  collectedAt: string
+}

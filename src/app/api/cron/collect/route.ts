@@ -1,5 +1,11 @@
-import { fetchInvestmentSheetRows } from "@/lib/google-sheets/client"
-import { parseInvestmentSheet } from "@/lib/google-sheets/parser"
+import {
+  fetchAssetClassRatioRows,
+  fetchInvestmentSheetRows,
+} from "@/lib/google-sheets/client"
+import {
+  parseAssetClassRatio,
+  parseInvestmentSheet,
+} from "@/lib/google-sheets/parser"
 import { collectFromSheet } from "@/lib/supabase/collect"
 
 export async function GET(request: Request) {
@@ -17,16 +23,20 @@ export async function GET(request: Request) {
     const rawRows = await fetchInvestmentSheetRows()
     const sheetRows = parseInvestmentSheet(rawRows)
 
+    const assetClassRawRows = await fetchAssetClassRatioRows()
+    const assetClassRows = parseAssetClassRatio(assetClassRawRows)
+
     if (isDryRun) {
       return Response.json({
         dryRun: true,
         rawRowCount: rawRows.length,
         rawRows,
         parsedRows: sheetRows,
+        parsedAssetClassRows: assetClassRows,
       })
     }
 
-    const result = await collectFromSheet(sheetRows)
+    const result = await collectFromSheet(sheetRows, assetClassRows)
     return Response.json({ success: true, ...result })
   } catch (error) {
     return Response.json({ success: false, error: String(error) }, { status: 500 })

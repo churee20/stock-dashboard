@@ -20,3 +20,11 @@ export interface AccountSnapshotRow {
   profit_rate: number
   collected_at: string
 }
+
+export interface AssetClassSnapshotRow {
+  id: string
+  asset_class: string
+  snapshot_date: string
+  current_amount: number
+  collected_at: string
+}
