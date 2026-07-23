@@ -7,9 +7,15 @@ interface PeriodDetailTableProps {
 }
 
 export function PeriodDetailTable({ rows, headerLabel }: PeriodDetailTableProps) {
-  const sortedRows = [...rows].sort((a, b) =>
-    a.periodLabel < b.periodLabel ? 1 : a.periodLabel > b.periodLabel ? -1 : 0
-  )
+  const sortedRows = [...rows].sort((a, b) => {
+    if (a.periodLabel !== b.periodLabel) {
+      return a.periodLabel < b.periodLabel ? 1 : -1
+    }
+    if (a.isTotalRow !== b.isTotalRow) {
+      return a.isTotalRow ? 1 : -1
+    }
+    return 0
+  })
 
   return <PeriodTable rows={sortedRows} headerLabel={headerLabel} />
 }

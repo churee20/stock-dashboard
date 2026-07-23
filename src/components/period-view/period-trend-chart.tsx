@@ -25,7 +25,9 @@ function buildChartData(
   rows: PeriodTableRow[],
   yAxisMode: "amount" | "profitRate"
 ): TrendLineDataPoint[] {
-  const periodLabels = Array.from(new Set(rows.map((row) => row.periodLabel)))
+  const periodLabels = Array.from(
+    new Set(rows.map((row) => row.periodLabel))
+  ).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
 
   return periodLabels.map((periodLabel) => {
     const point: TrendLineDataPoint = { periodLabel }
