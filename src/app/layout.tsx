@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   description: "투자 실적 현황",
 };
 
+// Vercel Cron이 매일 새로 수집하는 Supabase 데이터를 항상 최신 상태로 반영해야 하므로
+// 정적 프리렌더링을 금지하고 매 요청마다 서버에서 새로 조회한다.
+export const dynamic = "force-dynamic";
+
 export default async function RootLayout({
   children,
 }: Readonly<{

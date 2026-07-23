@@ -26,6 +26,19 @@ export async function getAccountSnapshots(): Promise<AccountSnapshot[]> {
   return (data as AccountSnapshotRow[]).map(mapSnapshotRowToSnapshot)
 }
 
+// 특정 날짜(snapshot_date)의 계좌 스냅샷 전체를 조회한다. 알림용 전일 대비 계산에 사용.
+export async function getSnapshotsByDate(
+  date: string
+): Promise<AccountSnapshot[]> {
+  const supabase = createSupabaseServerClient()
+  const { data, error } = await supabase
+    .from("account_snapshots")
+    .select("*")
+    .eq("snapshot_date", date)
+  if (error) throw error
+  return (data as AccountSnapshotRow[]).map(mapSnapshotRowToSnapshot)
+}
+
 export async function getLatestCollectedAt(): Promise<string | undefined> {
   const supabase = createSupabaseServerClient()
   const { data, error } = await supabase

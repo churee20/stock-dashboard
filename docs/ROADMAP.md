@@ -124,7 +124,16 @@
   - ✅ 프로덕션 URL에 dry-run 수동 호출로 인증·수집·파싱 정상 동작 확인(HTTP 200, 계좌 8종/자산군 6종), 실제 실행으로 DB 반영까지 확인 후 테스트 데이터 정리 — `docs/tasks/TASK-008.md` 참고
   - ⏭️ 성능 최적화(쿼리/캐싱), 모니터링/로깅 기초 구성, 공휴일 제외 로직은 범위 밖 → 후속 과제로 이월
 
+### Phase 5: 부가 알림 기능
+
+- **Task 009: 수집 완료 알림 자동화 (카카오톡 / Slack / 구글 캘린더)** ✅ - 완료(Vercel 환경변수 등록 대기)
+  - ✅ 원본 요구사항(`01.요구사항/추가요구사항_20260723.md`)의 MCP 도구 예시는 서버리스 코드에서 호출 불가함을 확인, 각 서비스 공식 API 직접 호출 방식으로 전환
+  - ✅ `src/lib/notify/` 신설: `summarize.ts`(그룹 합계·전일대비·억단위 포맷), `message.ts`(200자 이내 메시지 빌더, 100억대 경계 테스트로 소수점 단계 축약 로직 보강), `kakao.ts`(나에게 보내기, Client Secret 필요함을 실측 확인), `slack.ts`(Incoming Webhook), `calendar.ts`(서비스 계정 재사용, colorId Peacock + AVAILABILITY_FREE)
+  - ✅ `/api/cron/collect`에 알림 3종을 `Promise.allSettled`로 통합, 알림 실패가 수집 성공 응답에 영향 없음을 실측 확인(Slack만 의도적으로 실패시켜 검증)
+  - ✅ 로컬에서 카카오톡/Slack/구글캘린더 3곳 모두 실제 수신 확인 — `docs/tasks/TASK-009.md` 참고
+  - ⏭️ Vercel Production 환경변수 5개(`KAKAO_REST_API_KEY` 등) 등록 필요 — 등록 전까지 프로덕션 자동 알림 미동작(수집 자체는 정상)
+
 ---
 
 **📅 최종 업데이트**: 2026-07-23
-**📊 진행 상황**: Phase 1, 2, 3, 4 완료 (11/11 Tasks 완료) — Task 008(Vercel Cron 등록) 완료. 성능 최적화/모니터링 등은 후속 과제로 이월
+**📊 진행 상황**: Phase 1~4 완료 (11/11 Tasks), Phase 5 Task 009 구현 완료(Vercel 환경변수 등록 후 프로덕션 알림 활성화 예정). 성능 최적화/모니터링 등은 후속 과제로 이월
