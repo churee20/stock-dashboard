@@ -1,6 +1,6 @@
-import dayjs from "dayjs"
 import type { FullSummary, GroupSummary } from "@/lib/notify/summarize"
 import { calculateDayOverDay, formatEok } from "@/lib/notify/summarize"
+import { formatKst } from "@/lib/format/datetime"
 
 const MAX_MESSAGE_LENGTH = 200
 
@@ -73,7 +73,7 @@ export function buildSummaryMessage(
   yesterdaySummary: FullSummary | undefined,
   executedAt: Date
 ): string {
-  const timeLabel = dayjs(executedAt).format("YYYY-MM-DD HH:mm")
+  const timeLabel = formatKst(executedAt)
 
   for (const digits of [1, 0]) {
     const message = composeMessage(todaySummary, yesterdaySummary, timeLabel, digits)
@@ -102,7 +102,7 @@ export function buildCalendarEvent(
   yesterdaySummary: FullSummary | undefined,
   executedAt: Date
 ): CalendarEventInput {
-  const dateLabel = dayjs(executedAt).format("YYYY-MM-DD")
+  const dateLabel = formatKst(executedAt, "YYYY-MM-DD")
   const totalDayOverDay = calculateDayOverDay(
     todaySummary.total,
     yesterdaySummary?.total

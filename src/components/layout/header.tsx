@@ -1,4 +1,4 @@
-import dayjs from "dayjs"
+import { formatKst } from "@/lib/format/datetime"
 
 import { MainNav } from "@/components/navigation/main-nav"
 
@@ -7,9 +7,7 @@ interface HeaderProps {
 }
 
 export function Header({ collectedAt }: HeaderProps) {
-  const formattedCollectedAt = collectedAt
-    ? dayjs(collectedAt).format("YYYY-MM-DD HH:mm")
-    : "-"
+  const formattedCollectedAt = collectedAt ? formatKst(collectedAt) : "-"
 
   return (
     <header className="border-b border-border">
