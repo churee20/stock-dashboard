@@ -42,3 +42,6 @@ next-env.d.ts
 
 # shrimp-task-manager 데이터 (프로젝트 소스코드 아님, 버전 관리 대상 아님)
 /shrimp_data
+
+# Google 서비스 계정 인증키 (비밀키 유출 방지)
+/Google
