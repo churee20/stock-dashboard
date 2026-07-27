@@ -27,6 +27,15 @@ export function getGoogleSheetId(): string {
   return sheetId
 }
 
+// 배당 데이터는 투자 실적과 별도의 스프레드시트("6.배당금 계산기")에 있다.
+export function getGoogleDividendSheetId(): string {
+  const sheetId = process.env.GOOGLE_DIVIDEND_SHEET_ID
+  if (!sheetId) {
+    throw new Error("GOOGLE_DIVIDEND_SHEET_ID 환경변수가 설정되지 않았습니다")
+  }
+  return sheetId
+}
+
 // "1.투자 현황(현재)" 탭의 활성 데이터 범위(1~123행)를 2차원 문자열 배열로 읽어온다.
 export async function fetchInvestmentSheetRows(
   range = "1.투자 현황(현재)!A1:O123"
@@ -49,6 +58,21 @@ export async function fetchAssetClassRatioRows(
 ): Promise<string[][]> {
   const sheets = createGoogleSheetsClient()
   const spreadsheetId = getGoogleSheetId()
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range,
+  })
+
+  return (response.data.values ?? []) as string[][]
+}
+
+// 배당 스프레드시트("6.배당금 계산기") "3.배당금지급" 탭을 읽어온다(별도 스프레드시트, 헤더 3행+데이터 5행~).
+export async function fetchDividendSheetRows(
+  range = "3.배당금지급!A1:N700"
+): Promise<string[][]> {
+  const sheets = createGoogleSheetsClient()
+  const spreadsheetId = getGoogleDividendSheetId()
 
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId,

@@ -28,3 +28,16 @@ export interface AssetClassSnapshotRow {
   current_amount: number
   collected_at: string
 }
+
+export interface DividendSnapshotRow {
+  id: string
+  account_id: string
+  payment_date: string
+  stock_code: string
+  stock_name: string
+  dividend_shares: number
+  dividend_per_share: number
+  dividend_rate: number
+  dividend_amount: number
+  collected_at: string
+}

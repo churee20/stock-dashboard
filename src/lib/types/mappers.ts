@@ -1,7 +1,17 @@
-import type { AccountRow, AccountSnapshotRow, AssetClassSnapshotRow } from "@/lib/types/database"
+import type {
+  AccountRow,
+  AccountSnapshotRow,
+  AssetClassSnapshotRow,
+  DividendSnapshotRow,
+} from "@/lib/types/database"
 import type { Account, AccountSnapshot, AccountType } from "@/lib/types/account"
 import type { AssetClassSnapshot } from "@/lib/types/dashboard"
-import type { SheetAccountRow, SheetAssetClassRow } from "@/lib/types/sheets"
+import type { DividendSnapshot } from "@/lib/types/dividend"
+import type {
+  SheetAccountRow,
+  SheetAssetClassRow,
+  SheetDividendRow,
+} from "@/lib/types/sheets"
 
 export function mapAccountRowToAccount(row: AccountRow): Account {
   return {
@@ -76,6 +86,41 @@ export function mapSheetRowToAssetClassSnapshotInsert(
     asset_class: sheetRow.assetClass,
     snapshot_date: snapshotDate,
     current_amount: sheetRow.currentAmount,
+    collected_at: collectedAt,
+  }
+}
+
+export function mapDividendSnapshotRowToItem(
+  row: DividendSnapshotRow
+): DividendSnapshot {
+  return {
+    id: row.id,
+    accountId: row.account_id,
+    paymentDate: row.payment_date,
+    stockCode: row.stock_code,
+    stockName: row.stock_name,
+    dividendShares: row.dividend_shares,
+    dividendPerShare: row.dividend_per_share,
+    dividendRate: row.dividend_rate,
+    dividendAmount: row.dividend_amount,
+    collectedAt: row.collected_at,
+  }
+}
+
+export function mapSheetRowToDividendSnapshotInsert(
+  sheetRow: SheetDividendRow,
+  accountId: string,
+  collectedAt: string
+): Omit<DividendSnapshotRow, "id"> {
+  return {
+    account_id: accountId,
+    payment_date: sheetRow.paymentDate,
+    stock_code: sheetRow.stockCode,
+    stock_name: sheetRow.stockName,
+    dividend_shares: sheetRow.dividendShares,
+    dividend_per_share: sheetRow.dividendPerShare,
+    dividend_rate: sheetRow.dividendRate,
+    dividend_amount: sheetRow.dividendAmount,
     collected_at: collectedAt,
   }
 }

@@ -18,3 +18,16 @@ export interface SheetAssetClassRow {
   assetClass: string
   currentAmount: number
 }
+
+// 배당 스프레드시트("6.배당금 계산기") "3.배당금지급" 탭 한 행을 파싱한 중간 DTO입니다.
+// 미래 지급 예정(오늘 이후) 행은 파싱 단계에서 제외됩니다.
+export interface SheetDividendRow {
+  accountName: string
+  paymentDate: string
+  stockCode: string
+  stockName: string
+  dividendShares: number
+  dividendPerShare: number
+  dividendRate: number
+  dividendAmount: number
+}

@@ -1,9 +1,14 @@
 import { createSupabaseServerClient } from "@/lib/supabase/client"
 import type { AccountRow, AccountSnapshotRow } from "@/lib/types/database"
-import type { SheetAccountRow, SheetAssetClassRow } from "@/lib/types/sheets"
+import type {
+  SheetAccountRow,
+  SheetAssetClassRow,
+  SheetDividendRow,
+} from "@/lib/types/sheets"
 import {
   mapSheetRowToAccountInsert,
   mapSheetRowToAssetClassSnapshotInsert,
+  mapSheetRowToDividendSnapshotInsert,
   mapSheetRowToSnapshotInsert,
 } from "@/lib/types/mappers"
 
@@ -55,6 +60,8 @@ export interface CollectResult {
   newAccountCount: number
   upsertedSnapshotCount: number
   upsertedAssetClassCount: number
+  upsertedDividendCount: number
+  dividendError?: string
 }
 
 // 시트에 등장한 계좌명을 기존 accounts와 매칭하고, 없는 계좌는 신규 등록한다.
@@ -147,10 +154,40 @@ export async function upsertAssetClassSnapshots(
   return { upserted: payload.length }
 }
 
+// dividend_snapshots에 (account_id, stock_code, payment_date) 기준 upsert를 수행한다.
+// 계좌명이 accounts에 없으면(시트-DB 매칭 실패) 명확한 에러를 던져 조기 발견되도록 한다.
+export async function upsertDividendSnapshots(
+  accountIdByName: Map<string, string>,
+  dividendRows: SheetDividendRow[],
+  collectedAt: string
+): Promise<{ upserted: number }> {
+  const supabase = createSupabaseServerClient()
+
+  const payload = dividendRows.map((row) => {
+    const accountId = accountIdByName.get(row.accountName)
+    if (!accountId) {
+      throw new Error(`배당 계좌 ID를 찾을 수 없습니다: ${row.accountName}`)
+    }
+    return mapSheetRowToDividendSnapshotInsert(row, accountId, collectedAt)
+  })
+
+  if (payload.length === 0) {
+    return { upserted: 0 }
+  }
+
+  const { error } = await supabase
+    .from("dividend_snapshots")
+    .upsert(payload, { onConflict: "account_id,stock_code,payment_date" })
+  if (error) throw error
+
+  return { upserted: payload.length }
+}
+
 // Google Sheets에서 읽은 계좌 데이터와 자산군 비중 데이터를 Supabase에 반영하는 진입점.
 export async function collectFromSheet(
   sheetRows: SheetAccountRow[],
-  assetClassRows: SheetAssetClassRow[]
+  assetClassRows: SheetAssetClassRow[],
+  dividendRows: SheetDividendRow[] = []
 ): Promise<CollectResult> {
   const now = new Date()
   const snapshotDate = now.toISOString().slice(0, 10)
@@ -169,10 +206,28 @@ export async function collectFromSheet(
     collectedAt
   )
 
+  // 배당 수집은 계좌/자산군 수집과 별개 데이터 소스(별도 스프레드시트)이므로,
+  // 배당 수집이 실패해도 이미 완료된 계좌/자산군 수집 결과에는 영향을 주지 않는다.
+  let upsertedDividendCount = 0
+  let dividendError: string | undefined
+  try {
+    const result = await upsertDividendSnapshots(
+      accountIdByName,
+      dividendRows,
+      collectedAt
+    )
+    upsertedDividendCount = result.upserted
+  } catch (error) {
+    console.error("[collect] 배당 데이터 수집 실패:", error)
+    dividendError = String(error)
+  }
+
   return {
     accountCount: accountIdByName.size,
     newAccountCount,
     upsertedSnapshotCount: upserted,
     upsertedAssetClassCount,
+    upsertedDividendCount,
+    ...(dividendError ? { dividendError } : {}),
   }
 }

@@ -1,12 +1,15 @@
 import dayjs from "dayjs"
 import {
   fetchAssetClassRatioRows,
+  fetchDividendSheetRows,
   fetchInvestmentSheetRows,
 } from "@/lib/google-sheets/client"
 import {
   parseAssetClassRatio,
+  parseDividendSheet,
   parseInvestmentSheet,
 } from "@/lib/google-sheets/parser"
+import type { SheetDividendRow } from "@/lib/types/sheets"
 import { collectFromSheet } from "@/lib/supabase/collect"
 import { getAccounts, getSnapshotsByDate } from "@/lib/supabase/queries"
 import { summarizeByGroup } from "@/lib/notify/summarize"
@@ -85,6 +88,19 @@ export async function GET(request: Request) {
     const assetClassRawRows = await fetchAssetClassRatioRows()
     const assetClassRows = parseAssetClassRatio(assetClassRawRows)
 
+    // 배당 시트는 계좌/자산군과 별도 스프레드시트라, 조회 자체가 실패해도
+    // 기존 계좌/자산군 수집(dry-run 응답 포함)에는 영향을 주지 않는다.
+    let dividendRawRows: string[][] = []
+    let dividendRows: SheetDividendRow[] = []
+    let dividendFetchError: string | undefined
+    try {
+      dividendRawRows = await fetchDividendSheetRows()
+      dividendRows = parseDividendSheet(dividendRawRows)
+    } catch (error) {
+      console.error("[cron/collect] 배당 시트 조회/파싱 실패:", error)
+      dividendFetchError = String(error)
+    }
+
     if (isDryRun) {
       return Response.json({
         dryRun: true,
@@ -92,10 +108,13 @@ export async function GET(request: Request) {
         rawRows,
         parsedRows: sheetRows,
         parsedAssetClassRows: assetClassRows,
+        dividendRawRowCount: dividendRawRows.length,
+        parsedDividendRows: dividendRows,
+        ...(dividendFetchError ? { dividendFetchError } : {}),
       })
     }
 
-    const result = await collectFromSheet(sheetRows, assetClassRows)
+    const result = await collectFromSheet(sheetRows, assetClassRows, dividendRows)
 
     let notifications
     try {

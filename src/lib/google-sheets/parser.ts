@@ -1,5 +1,9 @@
 import type { AccountType } from "@/lib/types/account"
-import type { SheetAccountRow, SheetAssetClassRow } from "@/lib/types/sheets"
+import type {
+  SheetAccountRow,
+  SheetAssetClassRow,
+  SheetDividendRow,
+} from "@/lib/types/sheets"
 
 // "1.투자 현황(현재)" 탭 컬럼 인덱스(0-base, 실측 확정값).
 // 계좌명은 계좌의 첫 종목 행에만 등장하고, 계좌 합계는 "합 계" 라벨이 있는 행에 담긴다.
@@ -161,6 +165,76 @@ export function parseAssetClassRatio(rows: string[][]): SheetAssetClassRow[] {
     }
 
     result.push({ assetClass, currentAmount })
+  }
+
+  return result
+}
+
+// 배당 시트 컬럼 인덱스(0-base, 실측 확정값). A열은 항상 빈 값.
+const DIVIDEND_COLUMN = {
+  PAYMENT_DATE: 1,
+  ACCOUNT_NAME: 5,
+  STOCK_CODE: 6,
+  STOCK_NAME: 7,
+  DIVIDEND_SHARES: 8,
+  DIVIDEND_PER_SHARE: 9,
+  DIVIDEND_RATE: 10,
+  DIVIDEND_AMOUNT: 11,
+} as const
+
+// 시트의 "YYYY/MM/DD" 일자 표기를 DB date 컬럼과 동일한 "YYYY-MM-DD"로 정규화한다.
+function normalizeDividendDate(raw: string | undefined): string | null {
+  const match = raw?.trim().match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/)
+  if (!match) return null
+
+  const [, year, month, day] = match
+  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`
+}
+
+// 배당 스프레드시트("6.배당금 계산기") "3.배당금지급" 탭 원시 행 배열을 SheetDividendRow[]로 변환하는 순수 함수.
+// 헤더 행, 일자를 파싱할 수 없는 행은 제외하고, 오늘 날짜보다 미래인 지급 예정 행도 제외한다
+// (시트에 아직 지급되지 않은 예정 배당이 미리 입력되어 있음).
+export function parseDividendSheet(
+  rows: string[][],
+  today: string = new Date().toISOString().slice(0, 10)
+): SheetDividendRow[] {
+  const result: SheetDividendRow[] = []
+
+  for (const row of rows) {
+    const paymentDate = normalizeDividendDate(row[DIVIDEND_COLUMN.PAYMENT_DATE])
+    if (paymentDate === null || paymentDate > today) {
+      continue
+    }
+
+    const accountName = row[DIVIDEND_COLUMN.ACCOUNT_NAME]?.trim() ?? ""
+    const stockCode = row[DIVIDEND_COLUMN.STOCK_CODE]?.trim() ?? ""
+    const stockName = row[DIVIDEND_COLUMN.STOCK_NAME]?.trim() ?? ""
+
+    const dividendShares = parseAmount(row[DIVIDEND_COLUMN.DIVIDEND_SHARES])
+    const dividendPerShare = parseAmount(row[DIVIDEND_COLUMN.DIVIDEND_PER_SHARE])
+    const dividendRate = parseAmount(row[DIVIDEND_COLUMN.DIVIDEND_RATE])
+    const dividendAmount = parseAmount(row[DIVIDEND_COLUMN.DIVIDEND_AMOUNT])
+
+    if (
+      accountName === "" ||
+      stockCode === "" ||
+      dividendShares === null ||
+      dividendPerShare === null ||
+      dividendAmount === null
+    ) {
+      continue
+    }
+
+    result.push({
+      accountName,
+      paymentDate,
+      stockCode,
+      stockName,
+      dividendShares,
+      dividendPerShare,
+      dividendRate: dividendRate ?? 0,
+      dividendAmount,
+    })
   }
 
   return result
