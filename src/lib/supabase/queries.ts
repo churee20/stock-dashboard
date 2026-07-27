@@ -42,6 +42,27 @@ export async function getSnapshotsByDate(
   return (data as AccountSnapshotRow[]).map(mapSnapshotRowToSnapshot)
 }
 
+// 기준일(date) 이전 스냅샷 중 가장 최근 snapshot_date의 계좌 스냅샷 전체를 조회한다.
+// 주말/공휴일 등 휴장으로 전날 스냅샷이 없을 때, 알림의 전일 대비 계산이 직전 영업일과 비교하도록 한다.
+export async function getLatestSnapshotsBefore(
+  date: string
+): Promise<AccountSnapshot[]> {
+  const supabase = createSupabaseServerClient()
+  const { data: latestDateRow, error: latestDateError } = await supabase
+    .from("account_snapshots")
+    .select("snapshot_date")
+    .lt("snapshot_date", date)
+    .order("snapshot_date", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (latestDateError) throw latestDateError
+  if (!latestDateRow) return []
+
+  return getSnapshotsByDate(
+    (latestDateRow as Pick<AccountSnapshotRow, "snapshot_date">).snapshot_date
+  )
+}
+
 export async function getLatestCollectedAt(): Promise<string | undefined> {
   const supabase = createSupabaseServerClient()
   const { data, error } = await supabase

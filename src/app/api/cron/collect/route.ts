@@ -11,7 +11,11 @@ import {
 } from "@/lib/google-sheets/parser"
 import type { SheetDividendRow } from "@/lib/types/sheets"
 import { collectFromSheet } from "@/lib/supabase/collect"
-import { getAccounts, getSnapshotsByDate } from "@/lib/supabase/queries"
+import {
+  getAccounts,
+  getLatestSnapshotsBefore,
+  getSnapshotsByDate,
+} from "@/lib/supabase/queries"
 import { summarizeByGroup } from "@/lib/notify/summarize"
 import { buildCalendarEvent, buildSummaryMessage } from "@/lib/notify/message"
 import { sendKakaoMemo } from "@/lib/notify/kakao"
@@ -40,12 +44,11 @@ function toNotificationStatus(
 // 알림 실패는 여기서 절대 throw하지 않고 결과만 반환한다(호출부의 수집 성공 응답에 영향 없음).
 async function sendCollectNotifications(executedAt: Date) {
   const today = dayjs(executedAt).format("YYYY-MM-DD")
-  const yesterday = dayjs(executedAt).subtract(1, "day").format("YYYY-MM-DD")
 
   const accounts = await getAccounts()
   const [todaySnapshots, yesterdaySnapshots] = await Promise.all([
     getSnapshotsByDate(today),
-    getSnapshotsByDate(yesterday),
+    getLatestSnapshotsBefore(today),
   ])
 
   const todaySummary = summarizeByGroup(accounts, todaySnapshots)
