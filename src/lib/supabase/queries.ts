@@ -3,12 +3,15 @@ import type {
   AccountRow,
   AccountSnapshotRow,
   AssetClassSnapshotRow,
+  DividendSnapshotRow,
 } from "@/lib/types/database"
 import type { Account, AccountSnapshot } from "@/lib/types/account"
 import type { AssetClassSnapshot } from "@/lib/types/dashboard"
+import type { DividendSnapshot } from "@/lib/types/dividend"
 import {
   mapAccountRowToAccount,
   mapAssetClassSnapshotRowToItem,
+  mapDividendSnapshotRowToItem,
   mapSnapshotRowToSnapshot,
 } from "@/lib/types/mappers"
 
@@ -75,4 +78,11 @@ export async function getLatestAssetClassSnapshots(): Promise<
   if (error) throw error
 
   return (data as AssetClassSnapshotRow[]).map(mapAssetClassSnapshotRowToItem)
+}
+
+export async function getDividendSnapshots(): Promise<DividendSnapshot[]> {
+  const supabase = createSupabaseServerClient()
+  const { data, error } = await supabase.from("dividend_snapshots").select("*")
+  if (error) throw error
+  return (data as DividendSnapshotRow[]).map(mapDividendSnapshotRowToItem)
 }

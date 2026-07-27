@@ -10,6 +10,7 @@ const navItems = [
   { href: "/daily", label: "일별 추적" },
   { href: "/weekly", label: "주별 추적" },
   { href: "/monthly", label: "월별 실적" },
+  { href: "/dividend", label: "배당실적" },
 ] as const
 
 export function MainNav() {

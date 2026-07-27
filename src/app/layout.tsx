@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Header } from "@/components/layout/header";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { getLatestCollectedAt } from "@/lib/supabase/queries";
 import "./globals.css";
 
@@ -41,8 +42,10 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <Header collectedAt={latestCollectedAt} />
-        <main className="flex-1">{children}</main>
+        <TooltipProvider>
+          <Header collectedAt={latestCollectedAt} />
+          <main className="flex-1">{children}</main>
+        </TooltipProvider>
       </body>
     </html>
   );
