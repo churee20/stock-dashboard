@@ -51,10 +51,12 @@ export async function fetchInvestmentSheetRows(
   return (response.data.values ?? []) as string[][]
 }
 
-// "4.계좌별 비중" 탭의 [전체 계좌 비중] 섹션(4행 헤더 포함 ~11행 합계) 범위를 읽어온다.
+// "4.계좌별 비중" 탭의 [전체 계좌 비중] 섹션(4행 헤더~합계) 범위를 읽어온다.
 // "1.투자 현황(현재)" G열(자산구분)+M열(조회금액) 기준으로 시트 수식이 자동 계산해두는 값이다.
+// 자산군 행 수가 늘어나도 대응할 수 있도록 하한을 넉넉히 잡고(30행), 섹션 종료는
+// parseAssetClassRatio()가 빈 행을 만나는 지점에서 끊어낸다(아래 [계좌별 비중] 섹션과 분리).
 export async function fetchAssetClassRatioRows(
-  range = "4.계좌별 비중!A4:D11"
+  range = "4.계좌별 비중!A4:D30"
 ): Promise<string[][]> {
   const sheets = createGoogleSheetsClient()
   const spreadsheetId = getGoogleSheetId()

@@ -148,14 +148,22 @@ const ASSET_CLASS_COLUMN = {
 const ASSET_CLASS_EXCLUDED_LABELS = ["자산군", "합계"]
 
 // "4.계좌별 비중" 탭 [전체 계좌 비중] 섹션 원시 행 배열을 자산군별 요약 SheetAssetClassRow[]로 변환하는 순수 함수.
-// 헤더 행("계좌"/"자산군"/"현재금액(원)"/...)과 "합계" 라벨 행, 자산군명이 없는 행은 결과에서 제외한다.
+// 헤더 행("계좌"/"자산군"/"현재금액(원)"/...)과 "합계" 라벨 행은 결과에서 제외한다.
+// 자산군명이 없는 빈 행을 만나면 [전체 계좌 비중] 섹션이 끝난 것으로 보고 순회를 중단한다.
+// (아래 여백 행 너머에는 자산군명이 같은 [계좌별 비중] 섹션이 이어지므로, 여기서 끊지 않으면 중복 합산된다.)
+// 이 방식 덕분에 자산군 행 수가 늘거나 줄어도(예: 자산군 추가) 코드 수정 없이 대응된다.
 export function parseAssetClassRatio(rows: string[][]): SheetAssetClassRow[] {
   const result: SheetAssetClassRow[] = []
 
   for (const row of rows) {
     const assetClass = row[ASSET_CLASS_COLUMN.ASSET_CLASS]?.trim() ?? ""
 
-    if (assetClass === "" || ASSET_CLASS_EXCLUDED_LABELS.includes(assetClass)) {
+    if (assetClass === "") {
+      if (result.length > 0) break
+      continue
+    }
+
+    if (ASSET_CLASS_EXCLUDED_LABELS.includes(assetClass)) {
       continue
     }
 
