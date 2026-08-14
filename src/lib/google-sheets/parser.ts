@@ -21,17 +21,6 @@ const GROUP_SUMMARY_KEYWORDS = ["연금(합계)", "개인 투자(합계)", "전�
 // 계좌 요약 행을 나타내는 라벨(그룹 합산 행과 구분).
 const ACCOUNT_SUMMARY_LABEL = "합 계"
 
-// 시트에는 있지만 수집 대상에서 제외할 계좌(계좌명+계좌번호 조합으로 식별, 사용자 확정).
-const EXCLUDED_ACCOUNTS = [{ accountName: "은퇴 투자", accountNoMasked: "삼성증권" }]
-
-function isExcludedAccount(accountName: string, accountNoMasked: string): boolean {
-  return EXCLUDED_ACCOUNTS.some(
-    (excluded) =>
-      excluded.accountName === accountName &&
-      excluded.accountNoMasked === accountNoMasked
-  )
-}
-
 // 연금 계좌로 분류되는 계좌명 접두어(실측 시트 표기 기준, 공백 포함)
 const PENSION_ACCOUNT_NAMES = [
   "퇴직연금",
@@ -75,8 +64,7 @@ function isGroupSummaryRow(label: string): boolean {
 
 // "1.투자 현황(현재)" 탭 원시 행 배열을 계좌별 요약 SheetAccountRow[]로 변환하는 순수 함수.
 // 계좌명은 첫 종목 행에서 확인해 유지하다가, "합 계" 행을 만나면 해당 계좌의 요약으로 확정한다.
-// 그룹 합산 행(연금(합계)/개인 투자(합계)/전체(합계)), 투자금액을 파싱할 수 없는(빈 계좌) 행,
-// EXCLUDED_ACCOUNTS에 명시된 계좌(사용자 확정)는 결과에서 제외한다.
+// 그룹 합산 행(연금(합계)/개인 투자(합계)/전체(합계)), 투자금액을 파싱할 수 없는(빈 계좌) 행은 결과에서 제외한다.
 export function parseInvestmentSheet(rows: string[][]): SheetAccountRow[] {
   const result: SheetAccountRow[] = []
   let currentAccountName = ""
@@ -99,13 +87,6 @@ export function parseInvestmentSheet(rows: string[][]): SheetAccountRow[] {
     }
 
     if (labelCell !== ACCOUNT_SUMMARY_LABEL || currentAccountName === "") {
-      continue
-    }
-
-    if (isExcludedAccount(currentAccountName, currentAccountNoMasked)) {
-      currentAccountName = ""
-      currentAccountNoMasked = ""
-      currentPrincipalAmount = null
       continue
     }
 
@@ -179,15 +160,18 @@ export function parseAssetClassRatio(rows: string[][]): SheetAssetClassRow[] {
 }
 
 // 배당 시트 컬럼 인덱스(0-base, 실측 확정값). A열은 항상 빈 값.
+// G열(증권사)은 동일 계좌명을 쓰는 서로 다른 증권사 계좌(예: "처리투자"의 미래에셋/삼성증권)를
+// 구분하기 위해 추가된 컬럼이다.
 const DIVIDEND_COLUMN = {
   PAYMENT_DATE: 1,
   ACCOUNT_NAME: 5,
-  STOCK_CODE: 6,
-  STOCK_NAME: 7,
-  DIVIDEND_SHARES: 8,
-  DIVIDEND_PER_SHARE: 9,
-  DIVIDEND_RATE: 10,
-  DIVIDEND_AMOUNT: 11,
+  ACCOUNT_NO_MASKED: 6,
+  STOCK_CODE: 7,
+  STOCK_NAME: 8,
+  DIVIDEND_SHARES: 9,
+  DIVIDEND_PER_SHARE: 10,
+  DIVIDEND_RATE: 11,
+  DIVIDEND_AMOUNT: 12,
 } as const
 
 // 시트의 "YYYY/MM/DD" 일자 표기를 DB date 컬럼과 동일한 "YYYY-MM-DD"로 정규화한다.
@@ -215,6 +199,7 @@ export function parseDividendSheet(
     }
 
     const accountName = row[DIVIDEND_COLUMN.ACCOUNT_NAME]?.trim() ?? ""
+    const accountNoMasked = row[DIVIDEND_COLUMN.ACCOUNT_NO_MASKED]?.trim() ?? ""
     const stockCode = row[DIVIDEND_COLUMN.STOCK_CODE]?.trim() ?? ""
     const stockName = row[DIVIDEND_COLUMN.STOCK_NAME]?.trim() ?? ""
 
@@ -225,6 +210,7 @@ export function parseDividendSheet(
 
     if (
       accountName === "" ||
+      accountNoMasked === "" ||
       stockCode === "" ||
       dividendShares === null ||
       dividendPerShare === null ||
@@ -235,6 +221,7 @@ export function parseDividendSheet(
 
     result.push({
       accountName,
+      accountNoMasked,
       paymentDate,
       stockCode,
       stockName,

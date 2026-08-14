@@ -64,8 +64,14 @@ export interface CollectResult {
   dividendError?: string
 }
 
-// 시트에 등장한 계좌명을 기존 accounts와 매칭하고, 없는 계좌는 신규 등록한다.
-// 반환값: 계좌명 -> account id 매핑
+// 계좌명만으로는 동일 계좌명을 쓰는 서로 다른 증권사 계좌(예: "처리투자"의 미래에셋/삼성증권)를
+// 구분할 수 없으므로, 계좌명+계좌번호(마스킹) 조합을 계좌 식별 키로 사용한다.
+function toAccountKey(accountName: string, accountNoMasked: string): string {
+  return `${accountName}|${accountNoMasked}`
+}
+
+// 시트에 등장한 계좌를 기존 accounts와 매칭하고, 없는 계좌는 신규 등록한다.
+// 반환값: 계좌 식별 키(계좌명+계좌번호) -> account id 매핑
 export async function syncAccounts(
   sheetRows: SheetAccountRow[]
 ): Promise<{ accountIdByName: Map<string, string>; newAccountCount: number }> {
@@ -77,11 +83,14 @@ export async function syncAccounts(
   if (selectError) throw selectError
 
   const accountIdByName = new Map<string, string>(
-    (existingRows as AccountRow[]).map((row) => [row.account_name, row.id])
+    (existingRows as AccountRow[]).map((row) => [
+      toAccountKey(row.account_name, row.account_no_masked),
+      row.id,
+    ])
   )
 
   const newSheetRows = sheetRows.filter(
-    (row) => !accountIdByName.has(row.accountName)
+    (row) => !accountIdByName.has(toAccountKey(row.accountName, row.accountNoMasked))
   )
 
   if (newSheetRows.length === 0) {
@@ -96,7 +105,7 @@ export async function syncAccounts(
   if (insertError) throw insertError
 
   for (const row of insertedRows as AccountRow[]) {
-    accountIdByName.set(row.account_name, row.id)
+    accountIdByName.set(toAccountKey(row.account_name, row.account_no_masked), row.id)
   }
 
   return { accountIdByName, newAccountCount: insertedRows.length }
@@ -112,9 +121,9 @@ export async function upsertSnapshots(
   const supabase = createSupabaseServerClient()
 
   const payload = sheetRows.map((row) => {
-    const accountId = accountIdByName.get(row.accountName)
+    const accountId = accountIdByName.get(toAccountKey(row.accountName, row.accountNoMasked))
     if (!accountId) {
-      throw new Error(`계좌 ID를 찾을 수 없습니다: ${row.accountName}`)
+      throw new Error(`계좌 ID를 찾을 수 없습니다: ${row.accountName}(${row.accountNoMasked})`)
     }
     const snapshotInsert = mapSheetRowToSnapshotInsert(
       row,
@@ -164,9 +173,9 @@ export async function upsertDividendSnapshots(
   const supabase = createSupabaseServerClient()
 
   const payload = dividendRows.map((row) => {
-    const accountId = accountIdByName.get(row.accountName)
+    const accountId = accountIdByName.get(toAccountKey(row.accountName, row.accountNoMasked))
     if (!accountId) {
-      throw new Error(`배당 계좌 ID를 찾을 수 없습니다: ${row.accountName}`)
+      throw new Error(`배당 계좌 ID를 찾을 수 없습니다: ${row.accountName}(${row.accountNoMasked})`)
     }
     return mapSheetRowToDividendSnapshotInsert(row, accountId, collectedAt)
   })

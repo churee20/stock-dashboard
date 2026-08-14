@@ -23,6 +23,7 @@ export interface SheetAssetClassRow {
 // 미래 지급 예정(오늘 이후) 행은 파싱 단계에서 제외됩니다.
 export interface SheetDividendRow {
   accountName: string
+  accountNoMasked: string
   paymentDate: string
   stockCode: string
   stockName: string

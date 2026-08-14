@@ -71,7 +71,7 @@ export async function fetchAssetClassRatioRows(
 
 // 배당 스프레드시트("6.배당금 계산기") "3.배당금지급" 탭을 읽어온다(별도 스프레드시트, 헤더 3행+데이터 5행~).
 export async function fetchDividendSheetRows(
-  range = "3.배당금지급!A1:N700"
+  range = "3.배당금지급!A1:P700"
 ): Promise<string[][]> {
   const sheets = createGoogleSheetsClient()
   const spreadsheetId = getGoogleDividendSheetId()
