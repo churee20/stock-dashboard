@@ -3,13 +3,15 @@ import {
   fetchAssetClassRatioRows,
   fetchDividendSheetRows,
   fetchInvestmentSheetRows,
+  fetchStockHoldingRows,
 } from "@/lib/google-sheets/client"
 import {
   parseAssetClassRatio,
   parseDividendSheet,
   parseInvestmentSheet,
+  parseStockHoldings,
 } from "@/lib/google-sheets/parser"
-import type { SheetDividendRow } from "@/lib/types/sheets"
+import type { SheetDividendRow, SheetStockHoldingRow } from "@/lib/types/sheets"
 import { collectFromSheet } from "@/lib/supabase/collect"
 import {
   getAccounts,
@@ -104,6 +106,19 @@ export async function GET(request: Request) {
       dividendFetchError = String(error)
     }
 
+    // 종목 시트도 배당과 마찬가지로 별도 스프레드시트라, 조회 자체가 실패해도
+    // 기존 계좌/자산군/배당 수집(dry-run 응답 포함)에는 영향을 주지 않는다.
+    let stockHoldingRawRows: string[][] = []
+    let stockHoldingRows: SheetStockHoldingRow[] = []
+    let stockHoldingFetchError: string | undefined
+    try {
+      stockHoldingRawRows = await fetchStockHoldingRows()
+      stockHoldingRows = parseStockHoldings(stockHoldingRawRows)
+    } catch (error) {
+      console.error("[cron/collect] 종목 시트 조회/파싱 실패:", error)
+      stockHoldingFetchError = String(error)
+    }
+
     if (isDryRun) {
       return Response.json({
         dryRun: true,
@@ -114,10 +129,18 @@ export async function GET(request: Request) {
         dividendRawRowCount: dividendRawRows.length,
         parsedDividendRows: dividendRows,
         ...(dividendFetchError ? { dividendFetchError } : {}),
+        stockHoldingRawRowCount: stockHoldingRawRows.length,
+        parsedStockHoldingRows: stockHoldingRows,
+        ...(stockHoldingFetchError ? { stockHoldingFetchError } : {}),
       })
     }
 
-    const result = await collectFromSheet(sheetRows, assetClassRows, dividendRows)
+    const result = await collectFromSheet(
+      sheetRows,
+      assetClassRows,
+      dividendRows,
+      stockHoldingRows
+    )
 
     let notifications
     try {

@@ -3,14 +3,17 @@ import type {
   AccountSnapshotRow,
   AssetClassSnapshotRow,
   DividendSnapshotRow,
+  StockHoldingSnapshotRow,
 } from "@/lib/types/database"
 import type { Account, AccountSnapshot, AccountType } from "@/lib/types/account"
 import type { AssetClassSnapshot } from "@/lib/types/dashboard"
 import type { DividendSnapshot } from "@/lib/types/dividend"
+import type { StockHoldingSnapshot } from "@/lib/types/stock-holding"
 import type {
   SheetAccountRow,
   SheetAssetClassRow,
   SheetDividendRow,
+  SheetStockHoldingRow,
 } from "@/lib/types/sheets"
 
 export function mapAccountRowToAccount(row: AccountRow): Account {
@@ -121,6 +124,53 @@ export function mapSheetRowToDividendSnapshotInsert(
     dividend_per_share: sheetRow.dividendPerShare,
     dividend_rate: sheetRow.dividendRate,
     dividend_amount: sheetRow.dividendAmount,
+    collected_at: collectedAt,
+  }
+}
+
+export function mapStockHoldingRowToItem(
+  row: StockHoldingSnapshotRow
+): StockHoldingSnapshot {
+  return {
+    id: row.id,
+    snapshotDate: row.snapshot_date,
+    country: row.country,
+    stockCode: row.stock_code,
+    stockName: row.stock_name,
+    quantity: row.quantity,
+    avgPriceKrw: row.avg_price_krw,
+    avgPriceUsd: row.avg_price_usd,
+    currentPriceKrw: row.current_price_krw,
+    currentPriceUsd: row.current_price_usd,
+    valuationAmount: row.valuation_amount,
+    weightRate: row.weight_rate,
+    cumulativeDividend: row.cumulative_dividend,
+    cumulativeProfit: row.cumulative_profit,
+    totalReturnRate: row.total_return_rate,
+    collectedAt: row.collected_at,
+  }
+}
+
+export function mapSheetRowToStockHoldingSnapshotInsert(
+  sheetRow: SheetStockHoldingRow,
+  snapshotDate: string,
+  collectedAt: string
+): Omit<StockHoldingSnapshotRow, "id"> {
+  return {
+    snapshot_date: snapshotDate,
+    country: sheetRow.country,
+    stock_code: sheetRow.stockCode,
+    stock_name: sheetRow.stockName,
+    quantity: sheetRow.quantity,
+    avg_price_krw: sheetRow.avgPriceKrw,
+    avg_price_usd: sheetRow.avgPriceUsd,
+    current_price_krw: sheetRow.currentPriceKrw,
+    current_price_usd: sheetRow.currentPriceUsd,
+    valuation_amount: sheetRow.valuationAmount,
+    weight_rate: sheetRow.weightRate,
+    cumulative_dividend: sheetRow.cumulativeDividend,
+    cumulative_profit: sheetRow.cumulativeProfit,
+    total_return_rate: sheetRow.totalReturnRate,
     collected_at: collectedAt,
   }
 }

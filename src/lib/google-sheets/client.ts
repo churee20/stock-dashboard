@@ -36,6 +36,15 @@ export function getGoogleDividendSheetId(): string {
   return sheetId
 }
 
+// 종목별 실적&비중 데이터도 투자 실적과 별도의 스프레드시트에 있다.
+export function getGoogleStockSheetId(): string {
+  const sheetId = process.env.GOOGLE_STOCK_SHEET_ID
+  if (!sheetId) {
+    throw new Error("GOOGLE_STOCK_SHEET_ID 환경변수가 설정되지 않았습니다")
+  }
+  return sheetId
+}
+
 // "1.투자 현황(현재)" 탭의 활성 데이터 범위(1~123행)를 2차원 문자열 배열로 읽어온다.
 export async function fetchInvestmentSheetRows(
   range = "1.투자 현황(현재)!A1:O123"
@@ -75,6 +84,22 @@ export async function fetchDividendSheetRows(
 ): Promise<string[][]> {
   const sheets = createGoogleSheetsClient()
   const spreadsheetId = getGoogleDividendSheetId()
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range,
+  })
+
+  return (response.data.values ?? []) as string[][]
+}
+
+// 종목 스프레드시트 "2. 종목현황" 탭의 "종목별 실적 & 비중" 섹션(헤더 6~7행, 데이터 9행~26행)을 읽어온다.
+// 별도 스프레드시트(GOOGLE_STOCK_SHEET_ID). 26행 이후는 빈 행이지만 여유를 두어 30행까지 조회한다.
+export async function fetchStockHoldingRows(
+  range = "2. 종목현황!A1:P30"
+): Promise<string[][]> {
+  const sheets = createGoogleSheetsClient()
+  const spreadsheetId = getGoogleStockSheetId()
 
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId,

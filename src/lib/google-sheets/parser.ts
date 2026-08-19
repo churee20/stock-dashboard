@@ -3,6 +3,7 @@ import type {
   SheetAccountRow,
   SheetAssetClassRow,
   SheetDividendRow,
+  SheetStockHoldingRow,
 } from "@/lib/types/sheets"
 
 // "1.투자 현황(현재)" 탭 컬럼 인덱스(0-base, 실측 확정값).
@@ -42,6 +43,25 @@ function parseAmount(raw: string | undefined): number | null {
   if (numeric === "" || numeric === "-") return null
   const parsed = Number(numeric)
   return Number.isNaN(parsed) ? null : parsed
+}
+
+// 종목 시트는 음수를 "-" 부호가 아닌 "▼" 접두사로 표기한다("▼₩40,318,147", "▼16.74%").
+// 숫자 자체에는 마이너스 부호가 없으므로 parseAmount와 별도로 "▼" 유무를 먼저 확인해 부호를 반영한다.
+function parseSignedAmount(raw: string | undefined): number | null {
+  if (!raw) return null
+  const isNegative = raw.includes("▼")
+  const numeric = raw.replace(/[^0-9.]/g, "")
+  if (numeric === "") return null
+  const parsed = Number(numeric)
+  if (Number.isNaN(parsed)) return null
+  return isNegative ? -parsed : parsed
+}
+
+// "27.8%"/"▼16.74%" 형태의 퍼센트 문자열을 소수(0.278/-0.1674)로 변환한다.
+// 기존 profit_rate 등 DB 저장 관례(소수, 화면에서 formatPercent로 %를 붙임)와 통일하기 위함.
+function parseSignedPercent(raw: string | undefined): number | null {
+  const parsed = parseSignedAmount(raw)
+  return parsed === null ? null : parsed / 100
 }
 
 // 계좌명 셀("퇴직연금\n(220-91-xxxx-757)")을 계좌명/계좌번호(마스킹)로 분리한다.
@@ -229,6 +249,83 @@ export function parseDividendSheet(
       dividendPerShare,
       dividendRate: dividendRate ?? 0,
       dividendAmount,
+    })
+  }
+
+  return result
+}
+
+// 종목 시트 "2. 종목현황" 탭 컬럼 인덱스(0-base, 실측 확정값). A열은 항상 빈 값.
+const STOCK_HOLDING_COLUMN = {
+  COUNTRY: 2,
+  STOCK_CODE: 3,
+  STOCK_NAME: 4,
+  QUANTITY: 5,
+  AVG_PRICE_KRW: 6,
+  AVG_PRICE_USD: 7,
+  CURRENT_PRICE_KRW: 8,
+  CURRENT_PRICE_USD: 9,
+  VALUATION_AMOUNT: 10,
+  WEIGHT_RATE: 11,
+  CUMULATIVE_DIVIDEND: 12,
+  CUMULATIVE_PROFIT: 13,
+  TOTAL_RETURN_RATE: 14,
+} as const
+
+// "현금" 행은 종목이 아니므로 결과에서 제외한다(종목코드/종목명이 모두 "현금").
+const CASH_ROW_LABEL = "현금"
+
+// "2. 종목현황" 탭 "종목별 실적 & 비중" 섹션 원시 행 배열을 종목별 SheetStockHoldingRow[]로 변환하는 순수 함수.
+// 헤더 행(국가 라벨 없음), 합계 행(종목코드 없음), 현금 행은 제외한다.
+export function parseStockHoldings(rows: string[][]): SheetStockHoldingRow[] {
+  const result: SheetStockHoldingRow[] = []
+
+  for (const row of rows) {
+    const country = row[STOCK_HOLDING_COLUMN.COUNTRY]?.trim() ?? ""
+    const stockCode = row[STOCK_HOLDING_COLUMN.STOCK_CODE]?.trim() ?? ""
+    const stockName = row[STOCK_HOLDING_COLUMN.STOCK_NAME]?.trim() ?? ""
+
+    if (country === "" || stockCode === "" || stockCode === CASH_ROW_LABEL) {
+      continue
+    }
+
+    const quantity = parseAmount(row[STOCK_HOLDING_COLUMN.QUANTITY])
+    const valuationAmount = parseAmount(row[STOCK_HOLDING_COLUMN.VALUATION_AMOUNT])
+    const weightRate = parseAmount(row[STOCK_HOLDING_COLUMN.WEIGHT_RATE])
+    const cumulativeDividend = parseAmount(
+      row[STOCK_HOLDING_COLUMN.CUMULATIVE_DIVIDEND]
+    )
+    const cumulativeProfit = parseSignedAmount(
+      row[STOCK_HOLDING_COLUMN.CUMULATIVE_PROFIT]
+    )
+    const totalReturnRate = parseSignedPercent(
+      row[STOCK_HOLDING_COLUMN.TOTAL_RETURN_RATE]
+    )
+
+    if (
+      quantity === null ||
+      valuationAmount === null ||
+      weightRate === null ||
+      cumulativeProfit === null ||
+      totalReturnRate === null
+    ) {
+      continue
+    }
+
+    result.push({
+      country,
+      stockCode,
+      stockName,
+      quantity,
+      avgPriceKrw: parseAmount(row[STOCK_HOLDING_COLUMN.AVG_PRICE_KRW]),
+      avgPriceUsd: parseAmount(row[STOCK_HOLDING_COLUMN.AVG_PRICE_USD]),
+      currentPriceKrw: parseAmount(row[STOCK_HOLDING_COLUMN.CURRENT_PRICE_KRW]),
+      currentPriceUsd: parseAmount(row[STOCK_HOLDING_COLUMN.CURRENT_PRICE_USD]),
+      valuationAmount,
+      weightRate: weightRate / 100,
+      cumulativeDividend: cumulativeDividend ?? 0,
+      cumulativeProfit,
+      totalReturnRate,
     })
   }
 

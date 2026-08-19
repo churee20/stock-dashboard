@@ -41,3 +41,22 @@ export interface DividendSnapshotRow {
   dividend_amount: number
   collected_at: string
 }
+
+export interface StockHoldingSnapshotRow {
+  id: string
+  snapshot_date: string
+  country: string
+  stock_code: string
+  stock_name: string
+  quantity: number
+  avg_price_krw: number | null
+  avg_price_usd: number | null
+  current_price_krw: number | null
+  current_price_usd: number | null
+  valuation_amount: number
+  weight_rate: number
+  cumulative_dividend: number
+  cumulative_profit: number
+  total_return_rate: number
+  collected_at: string
+}

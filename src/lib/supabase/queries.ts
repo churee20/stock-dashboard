@@ -4,15 +4,18 @@ import type {
   AccountSnapshotRow,
   AssetClassSnapshotRow,
   DividendSnapshotRow,
+  StockHoldingSnapshotRow,
 } from "@/lib/types/database"
 import type { Account, AccountSnapshot } from "@/lib/types/account"
 import type { AssetClassSnapshot } from "@/lib/types/dashboard"
 import type { DividendSnapshot } from "@/lib/types/dividend"
+import type { StockHoldingSnapshot } from "@/lib/types/stock-holding"
 import {
   mapAccountRowToAccount,
   mapAssetClassSnapshotRowToItem,
   mapDividendSnapshotRowToItem,
   mapSnapshotRowToSnapshot,
+  mapStockHoldingRowToItem,
 } from "@/lib/types/mappers"
 
 export async function getAccounts(): Promise<Account[]> {
@@ -106,4 +109,49 @@ export async function getDividendSnapshots(): Promise<DividendSnapshot[]> {
   const { data, error } = await supabase.from("dividend_snapshots").select("*")
   if (error) throw error
   return (data as DividendSnapshotRow[]).map(mapDividendSnapshotRowToItem)
+}
+
+export async function getStockHoldingSnapshots(): Promise<
+  StockHoldingSnapshot[]
+> {
+  const supabase = createSupabaseServerClient()
+  const { data, error } = await supabase
+    .from("stock_holding_snapshots")
+    .select("*")
+  if (error) throw error
+  return (data as StockHoldingSnapshotRow[]).map(mapStockHoldingRowToItem)
+}
+
+// 특정 날짜(snapshot_date)의 종목 스냅샷 전체를 조회한다.
+export async function getStockHoldingSnapshotsByDate(
+  date: string
+): Promise<StockHoldingSnapshot[]> {
+  const supabase = createSupabaseServerClient()
+  const { data, error } = await supabase
+    .from("stock_holding_snapshots")
+    .select("*")
+    .eq("snapshot_date", date)
+  if (error) throw error
+  return (data as StockHoldingSnapshotRow[]).map(mapStockHoldingRowToItem)
+}
+
+// 가장 최근 snapshot_date의 종목 스냅샷 전체를 조회한다.
+export async function getLatestStockHoldingSnapshots(): Promise<
+  StockHoldingSnapshot[]
+> {
+  const supabase = createSupabaseServerClient()
+
+  const { data: latestRows, error: latestError } = await supabase
+    .from("stock_holding_snapshots")
+    .select("snapshot_date")
+    .order("snapshot_date", { ascending: false })
+    .limit(1)
+  if (latestError) throw latestError
+
+  const latestDate = (
+    latestRows as Pick<StockHoldingSnapshotRow, "snapshot_date">[]
+  )[0]?.snapshot_date
+  if (!latestDate) return []
+
+  return getStockHoldingSnapshotsByDate(latestDate)
 }

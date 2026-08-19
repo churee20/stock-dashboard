@@ -38,7 +38,7 @@ export function TrendLineChart({
 
   return (
     <DashboardChartContainer config={config} className="h-64 w-full">
-      <LineChart data={data} margin={{ left: 12, right: 12 }}>
+      <LineChart data={data} margin={{ left: 12, right: 12, top: 12 }}>
         <CartesianGrid vertical={false} />
         <XAxis
           dataKey="periodLabel"
@@ -50,6 +50,7 @@ export function TrendLineChart({
           tickLine={false}
           axisLine={false}
           tickMargin={8}
+          width={80}
           tickFormatter={(value: number) =>
             yAxisMode === "profitRate"
               ? `${value}%`

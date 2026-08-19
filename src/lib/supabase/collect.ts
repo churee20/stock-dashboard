@@ -4,12 +4,14 @@ import type {
   SheetAccountRow,
   SheetAssetClassRow,
   SheetDividendRow,
+  SheetStockHoldingRow,
 } from "@/lib/types/sheets"
 import {
   mapSheetRowToAccountInsert,
   mapSheetRowToAssetClassSnapshotInsert,
   mapSheetRowToDividendSnapshotInsert,
   mapSheetRowToSnapshotInsert,
+  mapSheetRowToStockHoldingSnapshotInsert,
 } from "@/lib/types/mappers"
 
 // 시트 원본값과 DB에 upsert되는 값이 다르면 경고만 남긴다(수집 흐름은 중단하지 않음).
@@ -62,6 +64,8 @@ export interface CollectResult {
   upsertedAssetClassCount: number
   upsertedDividendCount: number
   dividendError?: string
+  upsertedStockHoldingCount: number
+  stockHoldingError?: string
 }
 
 // 계좌명만으로는 동일 계좌명을 쓰는 서로 다른 증권사 계좌(예: "처리투자"의 미래에셋/삼성증권)를
@@ -163,6 +167,30 @@ export async function upsertAssetClassSnapshots(
   return { upserted: payload.length }
 }
 
+// stock_holding_snapshots에 (stock_code, snapshot_date) 기준 upsert를 수행한다.
+export async function upsertStockHoldingSnapshots(
+  stockRows: SheetStockHoldingRow[],
+  snapshotDate: string,
+  collectedAt: string
+): Promise<{ upserted: number }> {
+  const supabase = createSupabaseServerClient()
+
+  const payload = stockRows.map((row) =>
+    mapSheetRowToStockHoldingSnapshotInsert(row, snapshotDate, collectedAt)
+  )
+
+  if (payload.length === 0) {
+    return { upserted: 0 }
+  }
+
+  const { error } = await supabase
+    .from("stock_holding_snapshots")
+    .upsert(payload, { onConflict: "stock_code,snapshot_date" })
+  if (error) throw error
+
+  return { upserted: payload.length }
+}
+
 // dividend_snapshots에 (account_id, stock_code, payment_date) 기준 upsert를 수행한다.
 // 계좌명이 accounts에 없으면(시트-DB 매칭 실패) 명확한 에러를 던져 조기 발견되도록 한다.
 export async function upsertDividendSnapshots(
@@ -196,7 +224,8 @@ export async function upsertDividendSnapshots(
 export async function collectFromSheet(
   sheetRows: SheetAccountRow[],
   assetClassRows: SheetAssetClassRow[],
-  dividendRows: SheetDividendRow[] = []
+  dividendRows: SheetDividendRow[] = [],
+  stockHoldingRows: SheetStockHoldingRow[] = []
 ): Promise<CollectResult> {
   const now = new Date()
   const snapshotDate = now.toISOString().slice(0, 10)
@@ -231,6 +260,21 @@ export async function collectFromSheet(
     dividendError = String(error)
   }
 
+  // 종목 수집도 배당과 마찬가지로 별개 데이터 소스(별도 스프레드시트)이므로 독립 실패를 허용한다.
+  let upsertedStockHoldingCount = 0
+  let stockHoldingError: string | undefined
+  try {
+    const result = await upsertStockHoldingSnapshots(
+      stockHoldingRows,
+      snapshotDate,
+      collectedAt
+    )
+    upsertedStockHoldingCount = result.upserted
+  } catch (error) {
+    console.error("[collect] 종목 데이터 수집 실패:", error)
+    stockHoldingError = String(error)
+  }
+
   return {
     accountCount: accountIdByName.size,
     newAccountCount,
@@ -238,5 +282,7 @@ export async function collectFromSheet(
     upsertedAssetClassCount,
     upsertedDividendCount,
     ...(dividendError ? { dividendError } : {}),
+    upsertedStockHoldingCount,
+    ...(stockHoldingError ? { stockHoldingError } : {}),
   }
 }

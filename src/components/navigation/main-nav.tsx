@@ -7,8 +7,9 @@ import { cn } from "@/lib/utils"
 
 const navItems = [
   { href: "/", label: "현재 실적" },
-  { href: "/daily", label: "일별 추적" },
-  { href: "/weekly", label: "주별 추적" },
+  { href: "/investment-return", label: "투자 수익" },
+  { href: "/daily", label: "일별 실적" },
+  { href: "/weekly", label: "주별 실적" },
   { href: "/monthly", label: "월별 실적" },
   { href: "/dividend", label: "배당실적" },
 ] as const

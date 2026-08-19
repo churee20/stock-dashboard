@@ -32,3 +32,21 @@ export interface SheetDividendRow {
   dividendRate: number
   dividendAmount: number
 }
+
+// 종목 스프레드시트 "2. 종목현황" 탭 "종목별 실적 & 비중" 섹션 한 행을 파싱한 중간 DTO입니다.
+// 현금 행은 파싱 단계에서 제외됩니다. 원/달러 평단가·현재가는 국가에 따라 한쪽만 값이 있다(한국=원화, 미국=달러).
+export interface SheetStockHoldingRow {
+  country: string
+  stockCode: string
+  stockName: string
+  quantity: number
+  avgPriceKrw: number | null
+  avgPriceUsd: number | null
+  currentPriceKrw: number | null
+  currentPriceUsd: number | null
+  valuationAmount: number
+  weightRate: number
+  cumulativeDividend: number
+  cumulativeProfit: number
+  totalReturnRate: number
+}

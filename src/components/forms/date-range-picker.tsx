@@ -54,12 +54,12 @@ export function DateRangePicker({
           </Button>
         }
       />
-      <PopoverContent className="w-auto p-0">
+      <PopoverContent className="w-auto max-w-[calc(100vw-2rem)] p-0">
         <Calendar
           mode="range"
           selected={value}
           onSelect={onChange}
-          numberOfMonths={2}
+          numberOfMonths={1}
         />
       </PopoverContent>
     </Popover>
