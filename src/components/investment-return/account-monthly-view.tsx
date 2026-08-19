@@ -53,16 +53,23 @@ function buildMonthlyRows(
   return Array.from(latestByKey.entries())
     .map(([key, snapshot]) => {
       const monthLabel = key.split("__")[1]
+      const profitAmount = snapshot.currentAmount - snapshot.principalAmount
+      // DB의 profit_rate는 소스에 따라 저장 단위가 다르다(엑셀 백필분은 소수, Google Sheets
+      // 실 수집분은 이미 %단위 숫자). 이 컬럼을 신뢰하지 않고 기존 PeriodTableRow 관례와 동일하게
+      // 원금/현재금액으로 항상 직접 재계산해 단위 불일치를 원천 차단한다.
+      const profitRate =
+        snapshot.principalAmount === 0
+          ? 0
+          : (profitAmount / snapshot.principalAmount) * 100
+
       return {
         monthLabel,
         accountId: snapshot.accountId,
         accountName: accountNameById.get(snapshot.accountId) ?? "-",
         principalAmount: snapshot.principalAmount,
         currentAmount: snapshot.currentAmount,
-        profitAmount: snapshot.profitAmount,
-        // DB의 profit_rate는 소수(예: 1.667901)로 저장되어 있다.
-        // 기존 PeriodTableRow 관례(원금 대비 재계산 후 *100)와 통일해 %단위 값으로 변환한다.
-        profitRate: snapshot.profitRate * 100,
+        profitAmount,
+        profitRate,
       }
     })
     .sort((a, b) =>
