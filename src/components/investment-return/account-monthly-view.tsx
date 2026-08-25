@@ -85,12 +85,14 @@ function buildMonthlyRows(
 }
 
 // 계좌 단위 요약 리스트를 만든다.
-// - 투자 원금: "현재 실적"(GroupedDetailTable)과 동일하게 조회 조건과 무관하게 항상 계좌의
-//   최신 스냅샷 원금을 사용한다. 계좌 원금은 추가납입/인출로 시점마다 달라질 수 있어, 조회
-//   기간의 첫 달 원금을 쓰면 두 화면의 "투자 원금"이 서로 달라 보이는 문제가 있었다.
+// - 투자 원금/현재 평가액: "현재 실적"(GroupedDetailTable)과 동일하게 조회 조건과 무관하게
+//   항상 계좌의 최신 스냅샷 1건에서 함께 가져온다(같은 시점의 원금·평가액이어야 함).
+// - 누적 수익/총수익율(현재): "현재 실적"과 동일한 공식 — 누적 수익 = 현재 평가액 - 투자 원금
+//   (둘 다 최신 스냅샷 기준), 총수익율 = 누적 수익 / 투자 원금. 예전에는 누적 수익을
+//   "최신 평가액 - 최초 원금"으로 계산해 서로 다른 시점 값을 섞는 바람에 화면에 보이는
+//   투자 원금(최신)과 누적 수익이 암산상 맞지 않는 문제가 있었다.
 // - 평가액 MIN·MAX/조회 수익(율): 조회 조건(연도 범위·선택 계좌)에 해당하는 monthlyRows 기준
 // - 비중: 조회 조건 내 계좌들의 평가액(MAX) 합계 대비 비율
-// - 누적 수익/총수익율(현재): 조회 조건과 무관하게 계좌 전체 스냅샷 이력(최초 원금~최신 현재금액) 기준
 function buildSummaryRows(
   accounts: Account[],
   snapshots: AccountSnapshot[],
@@ -122,18 +124,15 @@ function buildSummaryRows(
       const accountSnapshots = snapshots
         .filter((s) => s.accountId === accountId)
         .sort((a, b) => a.snapshotDate.localeCompare(b.snapshotDate))
-      const firstSnapshot = accountSnapshots[0]
       const lastSnapshot = accountSnapshots[accountSnapshots.length - 1]
-      const initialPrincipal =
-        firstSnapshot?.principalAmount ?? accountRows[0].principalAmount
-      const latestAmount = lastSnapshot?.currentAmount ?? valuationMax
       const principalAmount =
         lastSnapshot?.principalAmount ?? accountRows[0].principalAmount
-      const cumulativeProfitAmount = latestAmount - initialPrincipal
+      const latestAmount = lastSnapshot?.currentAmount ?? valuationMax
+      const cumulativeProfitAmount = latestAmount - principalAmount
       const totalReturnRate =
-        initialPrincipal === 0
+        principalAmount === 0
           ? 0
-          : (cumulativeProfitAmount / initialPrincipal) * 100
+          : (cumulativeProfitAmount / principalAmount) * 100
 
       return {
         accountId,
@@ -169,6 +168,7 @@ function buildSummaryRows(
 // summaryRows 목록을 합산해 소계/전체 합계 1건을 만든다.
 // 금액 컬럼은 단순 합산, 비율 컬럼(조회 수익율/총수익율)은 합산된 금액으로 재계산한다.
 // weightRate는 totalValuationMax(전체 합계의 평가액 MAX) 대비 이 그룹의 비중이다.
+// 누적 수익/총수익율은 "현재 실적"과 동일하게 (현재 평가액 합계 - 투자 원금 합계) 기준.
 function summarizeRows(
   label: string,
   rows: AccountSummaryRow[],
@@ -183,15 +183,11 @@ function summarizeRows(
   const periodProfitRate =
     valuationMin === 0 ? 0 : (periodProfitAmount / valuationMin) * 100
   const currentValuation = rows.reduce((sum, r) => sum + r.currentValuation, 0)
-  const cumulativeProfitAmount = rows.reduce(
-    (sum, r) => sum + r.cumulativeProfitAmount,
-    0
-  )
-  const initialPrincipal = currentValuation - cumulativeProfitAmount
+  const cumulativeProfitAmount = currentValuation - principalAmount
   const totalReturnRate =
-    initialPrincipal === 0
+    principalAmount === 0
       ? 0
-      : (cumulativeProfitAmount / initialPrincipal) * 100
+      : (cumulativeProfitAmount / principalAmount) * 100
 
   return {
     label,
