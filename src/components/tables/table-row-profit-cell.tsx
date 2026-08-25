@@ -1,4 +1,4 @@
-import { formatPercent } from "@/lib/format/round"
+import { formatAmount, formatPercent } from "@/lib/format/round"
 import { cn } from "@/lib/utils"
 
 interface TableRowProfitCellProps {
@@ -9,9 +9,7 @@ interface TableRowProfitCellProps {
 
 function formatValue(amount: number, unit: "amount" | "rate"): string {
   const formatted =
-    unit === "rate"
-      ? formatPercent(amount)
-      : Math.abs(amount).toLocaleString()
+    unit === "rate" ? formatPercent(amount) : formatAmount(Math.abs(amount))
 
   if (amount > 0) return `+${formatted}`
   if (amount < 0) return `-${formatted}`

@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { TableRowProfitCell } from "@/components/tables/table-row-profit-cell"
-import { formatPercent } from "@/lib/format/round"
+import { formatAmount, formatPercent } from "@/lib/format/round"
 import { cn } from "@/lib/utils"
 import type { StockHoldingCompareRow } from "@/lib/types/stock-holding"
 
@@ -134,10 +134,10 @@ export function StockHoldingCompareTable({
               </TableCell>
               <TableCell>{row.country}</TableCell>
               <TableCell className="text-right">
-                {row.valuationFrom.toLocaleString()}
+                {formatAmount(row.valuationFrom)}
               </TableCell>
               <TableCell className="text-right">
-                {row.valuationTo.toLocaleString()}
+                {formatAmount(row.valuationTo)}
               </TableCell>
               <TableCell className="text-right">
                 {formatPercent(row.weightFrom * 100, 1)}
@@ -158,7 +158,7 @@ export function StockHoldingCompareTable({
                 />
               </TableCell>
               <TableCell className="text-right">
-                {row.cumulativeDividend.toLocaleString()}
+                {formatAmount(row.cumulativeDividend)}
               </TableCell>
               <TableCell className="text-right">
                 <TableRowProfitCell

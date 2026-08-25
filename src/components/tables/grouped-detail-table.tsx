@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { TableRowProfitCell } from "@/components/tables/table-row-profit-cell"
+import { formatAmount } from "@/lib/format/round"
 import type { Account, AccountSnapshot } from "@/lib/types/account"
 import { cn } from "@/lib/utils"
 
@@ -115,10 +116,10 @@ export function GroupedDetailTable({
                   {groupType} 소계
                 </TableCell>
                 <TableCell className="text-right">
-                  {summary.principalAmount.toLocaleString()}
+                  {formatAmount(summary.principalAmount)}
                 </TableCell>
                 <TableCell className="text-right">
-                  {summary.currentAmount.toLocaleString()}
+                  {formatAmount(summary.currentAmount)}
                 </TableCell>
                 <TableCell className="text-right">
                   <TableRowProfitCell amount={summary.profitAmount} unit="amount" />
@@ -141,10 +142,10 @@ export function GroupedDetailTable({
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        {snapshot.principalAmount.toLocaleString()}
+                        {formatAmount(snapshot.principalAmount)}
                       </TableCell>
                       <TableCell className="text-right">
-                        {snapshot.currentAmount.toLocaleString()}
+                        {formatAmount(snapshot.currentAmount)}
                       </TableCell>
                       <TableCell className="text-right">
                         <TableRowProfitCell
@@ -167,10 +168,10 @@ export function GroupedDetailTable({
         <TableRow className={cn("bg-muted font-bold")}>
           <TableCell>전체 합계</TableCell>
           <TableCell className="text-right">
-            {totalSummary.principalAmount.toLocaleString()}
+            {formatAmount(totalSummary.principalAmount)}
           </TableCell>
           <TableCell className="text-right">
-            {totalSummary.currentAmount.toLocaleString()}
+            {formatAmount(totalSummary.currentAmount)}
           </TableCell>
           <TableCell className="text-right">
             <TableRowProfitCell amount={totalSummary.profitAmount} unit="amount" />

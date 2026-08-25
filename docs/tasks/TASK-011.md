@@ -97,6 +97,12 @@
 - **수정**: `account-monthly-view.tsx`의 `buildMonthlyRows()`에서 `profitAmount`/`profitRate`를 DB 컬럼값 대신 `principalAmount`/`currentAmount` 기준으로 항상 직접 재계산하도록 변경(기존 화면들과 동일한 방식으로 통일, DB 저장 단위 불일치에 더 이상 의존하지 않음)
 - **검증**: 2026-07 DC계좌(원금 51,504,545/현재금액 102,811,265/수익률 +99.62%) 등 재계산값이 원금 대비 정확히 일치함을 확인, typecheck/lint/build 통과
 
+## 성능: account_snapshots 인덱스 점검 (2026-08-20)
+- **점검 배경**: 매일 cron 수집으로 데이터가 계속 누적되는 테이블이라 사용자가 인덱스 필요 여부 확인 요청
+- **확인 결과**: `explain`으로 실측한 결과 `getSnapshotsByDate`/`getLatestSnapshotsBefore`(WHERE snapshot_date, 알림 발송 시 매일 호출)와 `getLatestCollectedAt`(ORDER BY collected_at, 모든 화면 헤더 렌더링마다 호출) 두 쿼리가 인덱스 없이 Seq Scan으로 실행되고 있음을 발견. 기존 `idx_account_snapshots_account_date`는 `(account_id, snapshot_date)` 복합 인덱스라 `account_id` 없는 단독 `snapshot_date` 필터에는 활용되지 않았음. 다른 테이블(asset_class_snapshots/dividend_snapshots/stock_holding_snapshots)은 이미 snapshot_date/payment_date 단독 인덱스가 있어 문제 없었음
+- **조치**: `supabase/migrations/20260820000000_add_account_snapshots_indexes.sql`로 `idx_account_snapshots_snapshot_date`, `idx_account_snapshots_collected_at` 2개 인덱스 추가, 사용자 승인 후 적용 완료
+- **검증**: 적용 후 `explain` 재실행 결과 두 쿼리 모두 Seq Scan → Index Scan/Index Only Scan으로 전환 확인. `get_advisors(performance)`로 이 프로젝트가 쓰는 테이블 관련 신규 경고 없음 확인(신규 인덱스의 "unused index" INFO는 방금 생성해 트래픽이 없어서일 뿐 정상, 나머지 경고는 이 프로젝트가 쓰지 않는 공유 프로젝트의 다른 앱 테이블)
+
 ## 후속 과제
 - 종목 데이터가 며칠 더 쌓이면 탭2 스택 막대/탭3 리스트의 실제 다구간 조회 UX를 재검증할 필요 있음
 - 날짜 범위 캘린더(`DateRangePicker`)의 이전 달 이동 시 일부 조작감 이슈 발견(재현 필요, 기능 자체는 동작)

@@ -7,6 +7,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { TableRowProfitCell } from "@/components/tables/table-row-profit-cell"
+import { formatAmount } from "@/lib/format/round"
 import type { PeriodTableRow } from "@/lib/types/period-view"
 import { cn } from "@/lib/utils"
 
@@ -37,10 +38,10 @@ export function PeriodTable({ rows, headerLabel = "날짜" }: PeriodTableProps) 
             <TableCell>{row.periodLabel}</TableCell>
             <TableCell>{row.group}</TableCell>
             <TableCell className="text-right">
-              {row.principalAmount.toLocaleString()}
+              {formatAmount(row.principalAmount)}
             </TableCell>
             <TableCell className="text-right">
-              {row.currentAmount.toLocaleString()}
+              {formatAmount(row.currentAmount)}
             </TableCell>
             <TableCell className="text-right">
               <TableRowProfitCell amount={row.profitAmount} unit="amount" />

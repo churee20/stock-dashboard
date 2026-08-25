@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { formatAmount } from "@/lib/format/round"
 import type { Account, AccountType } from "@/lib/types/account"
 import type { DividendSnapshot } from "@/lib/types/dividend"
 import { cn } from "@/lib/utils"
@@ -137,7 +138,7 @@ export function DividendListTable({
                         {groupType} 소계
                       </TableCell>
                       <TableCell className="text-right">
-                        {groupTotal.toLocaleString()}
+                        {formatAmount(groupTotal)}
                       </TableCell>
                     </TableRow>
 
@@ -164,7 +165,7 @@ export function DividendListTable({
                               {snapshot.dividendRate.toFixed(2)}%
                             </TableCell>
                             <TableCell className="text-right">
-                              {snapshot.dividendAmount.toLocaleString()}
+                              {formatAmount(snapshot.dividendAmount)}
                             </TableCell>
                           </TableRow>
                         ))
@@ -178,7 +179,7 @@ export function DividendListTable({
                   {formatMonthLabel(monthLabel)} 합계
                 </TableCell>
                 <TableCell className="text-right">
-                  {monthTotal.toLocaleString()}
+                  {formatAmount(monthTotal)}
                 </TableCell>
               </TableRow>
             </Fragment>
