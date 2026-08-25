@@ -85,7 +85,10 @@ function buildMonthlyRows(
 }
 
 // 계좌 단위 요약 리스트를 만든다.
-// - 원금/평가액 MIN·MAX/조회 수익(율): 조회 조건(연도 범위·선택 계좌)에 해당하는 monthlyRows 기준
+// - 투자 원금: "현재 실적"(GroupedDetailTable)과 동일하게 조회 조건과 무관하게 항상 계좌의
+//   최신 스냅샷 원금을 사용한다. 계좌 원금은 추가납입/인출로 시점마다 달라질 수 있어, 조회
+//   기간의 첫 달 원금을 쓰면 두 화면의 "투자 원금"이 서로 달라 보이는 문제가 있었다.
+// - 평가액 MIN·MAX/조회 수익(율): 조회 조건(연도 범위·선택 계좌)에 해당하는 monthlyRows 기준
 // - 비중: 조회 조건 내 계좌들의 평가액(MAX) 합계 대비 비율
 // - 누적 수익/총수익율(현재): 조회 조건과 무관하게 계좌 전체 스냅샷 이력(최초 원금~최신 현재금액) 기준
 function buildSummaryRows(
@@ -110,10 +113,6 @@ function buildSummaryRows(
 
   const summaries = Array.from(rowsByAccount.entries()).map(
     ([accountId, accountRows]) => {
-      const sortedByMonth = [...accountRows].sort((a, b) =>
-        a.monthLabel.localeCompare(b.monthLabel)
-      )
-      const principalAmount = sortedByMonth[0].principalAmount
       const valuationMin = Math.min(...accountRows.map((r) => r.currentAmount))
       const valuationMax = Math.max(...accountRows.map((r) => r.currentAmount))
       const periodProfitAmount = valuationMax - valuationMin
@@ -125,8 +124,11 @@ function buildSummaryRows(
         .sort((a, b) => a.snapshotDate.localeCompare(b.snapshotDate))
       const firstSnapshot = accountSnapshots[0]
       const lastSnapshot = accountSnapshots[accountSnapshots.length - 1]
-      const initialPrincipal = firstSnapshot?.principalAmount ?? principalAmount
+      const initialPrincipal =
+        firstSnapshot?.principalAmount ?? accountRows[0].principalAmount
       const latestAmount = lastSnapshot?.currentAmount ?? valuationMax
+      const principalAmount =
+        lastSnapshot?.principalAmount ?? accountRows[0].principalAmount
       const cumulativeProfitAmount = latestAmount - initialPrincipal
       const totalReturnRate =
         initialPrincipal === 0
