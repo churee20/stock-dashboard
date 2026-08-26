@@ -7,9 +7,9 @@ import { DividendStockMultiSelect } from "@/components/dividend/dividend-stock-m
 import { DividendStackedBarChart } from "@/components/dividend/dividend-stacked-bar-chart"
 import { DividendListTable } from "@/components/dividend/dividend-list-table"
 import {
-  MonthRangeSelect,
-  type MonthRangeValue,
-} from "@/components/forms/month-range-select"
+  YearMonthRangeSelect,
+  type YearMonthRangeValue,
+} from "@/components/forms/year-month-range-select"
 import type { Account } from "@/lib/types/account"
 import type { DividendSnapshot } from "@/lib/types/dividend"
 
@@ -18,9 +18,14 @@ interface DividendViewContainerProps {
   dividendSnapshots: DividendSnapshot[]
 }
 
-function defaultMonthRange(): MonthRangeValue {
+function defaultYearMonthRange(): YearMonthRangeValue {
   const today = dayjs()
-  return { year: today.year(), startMonth: 1, endMonth: today.month() + 1 }
+  return {
+    fromYear: today.year(),
+    fromMonth: 1,
+    toYear: today.year(),
+    toMonth: today.month() + 1,
+  }
 }
 
 export function DividendViewContainer({
@@ -33,17 +38,17 @@ export function DividendViewContainer({
   )
 
   const [selectedStockNames, setSelectedStockNames] = useState<string[]>([])
-  const [monthRange, setMonthRange] = useState<MonthRangeValue>(
-    defaultMonthRange()
+  const [yearMonthRange, setYearMonthRange] = useState<YearMonthRangeValue>(
+    defaultYearMonthRange()
   )
 
   const currentYear = dayjs().year()
   const yearOptions = [currentYear - 2, currentYear - 1, currentYear]
 
   const filteredSnapshots = useMemo(() => {
-    const startDate = `${monthRange.year}-${String(monthRange.startMonth).padStart(2, "0")}-01`
+    const startDate = `${yearMonthRange.fromYear}-${String(yearMonthRange.fromMonth).padStart(2, "0")}-01`
     const endDate = dayjs(
-      `${monthRange.year}-${String(monthRange.endMonth).padStart(2, "0")}-01`
+      `${yearMonthRange.toYear}-${String(yearMonthRange.toMonth).padStart(2, "0")}-01`
     )
       .endOf("month")
       .format("YYYY-MM-DD")
@@ -56,7 +61,7 @@ export function DividendViewContainer({
         selectedStockNames.includes(snapshot.stockName)
       return inRange && matchesStock
     })
-  }, [dividendSnapshots, monthRange, selectedStockNames])
+  }, [dividendSnapshots, yearMonthRange, selectedStockNames])
 
   if (dividendSnapshots.length === 0) {
     return (
@@ -74,9 +79,9 @@ export function DividendViewContainer({
           selectedStockNames={selectedStockNames}
           onChange={setSelectedStockNames}
         />
-        <MonthRangeSelect
-          value={monthRange}
-          onChange={setMonthRange}
+        <YearMonthRangeSelect
+          value={yearMonthRange}
+          onChange={setYearMonthRange}
           yearOptions={yearOptions}
         />
       </div>

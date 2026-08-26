@@ -5,9 +5,9 @@ import dayjs from "dayjs"
 
 import { AccountMultiSelectWithToggle } from "@/components/investment-return/account-multi-select-with-toggle"
 import {
-  YearRangeSelect,
-  type YearRangeValue,
-} from "@/components/forms/year-range-select"
+  YearMonthRangeSelect,
+  type YearMonthRangeValue,
+} from "@/components/forms/year-month-range-select"
 import {
   AmountRateComboChart,
   type AmountRateComboPoint,
@@ -34,18 +34,21 @@ const YEAR_OPTIONS = [2024, 2025, 2026, 2027, 2028, 2029, 2030]
 function buildMonthlyRows(
   accounts: Account[],
   snapshots: AccountSnapshot[],
-  yearRange: YearRangeValue,
+  yearMonthRange: YearMonthRangeValue,
   selectedAccountIds: string[]
 ): AccountMonthlyRow[] {
   const accountNameById = new Map(accounts.map((a) => [a.id, a.accountName]))
   const accountIdSet = new Set(selectedAccountIds)
 
+  const fromKey = yearMonthRange.fromYear * 100 + yearMonthRange.fromMonth
+  const toKey = yearMonthRange.toYear * 100 + yearMonthRange.toMonth
+
   const latestByKey = new Map<string, AccountSnapshot>()
   for (const snapshot of snapshots) {
     if (!accountIdSet.has(snapshot.accountId)) continue
     const d = dayjs(snapshot.snapshotDate)
-    const year = d.year()
-    if (year < yearRange.fromYear || year > yearRange.toYear) continue
+    const snapshotKey = d.year() * 100 + (d.month() + 1)
+    if (snapshotKey < fromKey || snapshotKey > toKey) continue
 
     const monthLabel = d.format("YYYY-MM")
     const key = `${snapshot.accountId}__${monthLabel}`
@@ -247,32 +250,47 @@ function buildChartData(rows: AccountMonthlyRow[]): AmountRateComboPoint[] {
 
 // 스냅샷 전체 기간을 기본 조회 범위로 사용한다("연도 default는 전체 연도가 조회되도록").
 // 스냅샷이 없으면 YEAR_OPTIONS 전체 범위로 폴백한다.
-function defaultYearRange(snapshots: AccountSnapshot[]): YearRangeValue {
+function defaultYearMonthRange(
+  snapshots: AccountSnapshot[]
+): YearMonthRangeValue {
   if (snapshots.length === 0) {
     return {
       fromYear: YEAR_OPTIONS[0],
+      fromMonth: 1,
       toYear: YEAR_OPTIONS[YEAR_OPTIONS.length - 1],
+      toMonth: 12,
     }
   }
 
-  const years = snapshots.map((s) => dayjs(s.snapshotDate).year())
-  return { fromYear: Math.min(...years), toYear: Math.max(...years) }
+  const dates = snapshots
+    .map((s) => dayjs(s.snapshotDate))
+    .sort((a, b) => a.valueOf() - b.valueOf())
+  const first = dates[0]
+  const last = dates[dates.length - 1]
+
+  return {
+    fromYear: first.year(),
+    fromMonth: first.month() + 1,
+    toYear: last.year(),
+    toMonth: last.month() + 1,
+  }
 }
 
 export function AccountMonthlyView({
   accounts,
   snapshots,
 }: AccountMonthlyViewProps) {
-  const [yearRange, setYearRange] = useState<YearRangeValue>(() =>
-    defaultYearRange(snapshots)
+  const [yearMonthRange, setYearMonthRange] = useState<YearMonthRangeValue>(
+    () => defaultYearMonthRange(snapshots)
   )
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(
     accounts.map((a) => a.id)
   )
 
   const rows = useMemo(
-    () => buildMonthlyRows(accounts, snapshots, yearRange, selectedAccountIds),
-    [accounts, snapshots, yearRange, selectedAccountIds]
+    () =>
+      buildMonthlyRows(accounts, snapshots, yearMonthRange, selectedAccountIds),
+    [accounts, snapshots, yearMonthRange, selectedAccountIds]
   )
 
   const chartData = useMemo(() => buildChartData(rows), [rows])
@@ -305,9 +323,9 @@ export function AccountMonthlyView({
           selectedAccountIds={selectedAccountIds}
           onChange={setSelectedAccountIds}
         />
-        <YearRangeSelect
-          value={yearRange}
-          onChange={setYearRange}
+        <YearMonthRangeSelect
+          value={yearMonthRange}
+          onChange={setYearMonthRange}
           yearOptions={YEAR_OPTIONS}
         />
       </div>
