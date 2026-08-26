@@ -9,9 +9,9 @@ import { PeriodDetailTable } from "@/components/period-view/period-detail-table"
 import { PeriodFilterForm } from "@/components/period-view/period-filter-form"
 import { PeriodTrendChart } from "@/components/period-view/period-trend-chart"
 import {
-  MonthRangeSelect,
-  type MonthRangeValue,
-} from "@/components/forms/month-range-select"
+  YearMonthRangeSelect,
+  type YearMonthRangeValue,
+} from "@/components/forms/year-month-range-select"
 import { AccountMultiSelect } from "@/components/forms/account-multi-select"
 import { aggregateToMonthly, aggregateToWeekly } from "@/lib/dummy-data/aggregate"
 import { filterSnapshotsByDateRange } from "@/lib/dummy-data/select-latest"
@@ -107,9 +107,14 @@ function defaultDateRange(): DateRange {
   return { from: from.toDate(), to: to.toDate() }
 }
 
-function defaultMonthRange(): MonthRangeValue {
+function defaultYearMonthRange(): YearMonthRangeValue {
   const today = dayjs()
-  return { year: today.year(), startMonth: 1, endMonth: today.month() + 1 }
+  return {
+    fromYear: today.year(),
+    fromMonth: 1,
+    toYear: today.year(),
+    toMonth: today.month() + 1,
+  }
 }
 
 function toDateString(date: Date | undefined): string {
@@ -127,8 +132,8 @@ export function PeriodViewContainer({
   const [dateRange, setDateRange] = useState<DateRange | undefined>(
     defaultDateRange()
   )
-  const [monthRange, setMonthRange] = useState<MonthRangeValue>(
-    defaultMonthRange()
+  const [yearMonthRange, setYearMonthRange] = useState<YearMonthRangeValue>(
+    defaultYearMonthRange()
   )
   const currentYear = dayjs().year()
   const yearOptions = [currentYear - 2, currentYear - 1, currentYear]
@@ -145,9 +150,9 @@ export function PeriodViewContainer({
     )
 
     if (granularity === "monthly") {
-      const startDate = `${monthRange.year}-${String(monthRange.startMonth).padStart(2, "0")}-01`
+      const startDate = `${yearMonthRange.fromYear}-${String(yearMonthRange.fromMonth).padStart(2, "0")}-01`
       const endDate = dayjs(
-        `${monthRange.year}-${String(monthRange.endMonth).padStart(2, "0")}-01`
+        `${yearMonthRange.toYear}-${String(yearMonthRange.toMonth).padStart(2, "0")}-01`
       )
         .endOf("month")
         .format("YYYY-MM-DD")
@@ -181,7 +186,7 @@ export function PeriodViewContainer({
     filteredAccounts,
     granularity,
     dateRange,
-    monthRange,
+    yearMonthRange,
   ])
 
   return (
@@ -193,9 +198,9 @@ export function PeriodViewContainer({
             selectedAccountIds={selectedAccountIds}
             onChange={setSelectedAccountIds}
           />
-          <MonthRangeSelect
-            value={monthRange}
-            onChange={setMonthRange}
+          <YearMonthRangeSelect
+            value={yearMonthRange}
+            onChange={setYearMonthRange}
             yearOptions={yearOptions}
           />
         </div>

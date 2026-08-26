@@ -2,9 +2,11 @@
 
 import { useMemo, useState } from "react"
 import dayjs from "dayjs"
-import type { DateRange } from "react-day-picker"
 
-import { DateRangePicker } from "@/components/forms/date-range-picker"
+import {
+  YearMonthRangeSelect,
+  type YearMonthRangeValue,
+} from "@/components/forms/year-month-range-select"
 import { StockHoldingStackedBarChart } from "@/components/investment-return/stock-holding-stacked-bar-chart"
 import type { StockHoldingSnapshot } from "@/lib/types/stock-holding"
 
@@ -12,40 +14,66 @@ interface StockHoldingRatioViewProps {
   snapshots: StockHoldingSnapshot[]
 }
 
-// 스냅샷 전체 기간을 기본 조회 범위로 사용한다.
-function defaultDateRange(snapshots: StockHoldingSnapshot[]): DateRange {
+const YEAR_OPTIONS = [2024, 2025, 2026, 2027, 2028, 2029, 2030]
+
+// 스냅샷 전체 기간을 기본 조회 범위로 사용한다("연도 default는 전체 연도가 조회되도록").
+function defaultYearMonthRange(
+  snapshots: StockHoldingSnapshot[]
+): YearMonthRangeValue {
   if (snapshots.length === 0) {
     const today = dayjs()
-    return { from: today.toDate(), to: today.toDate() }
+    return {
+      fromYear: today.year(),
+      fromMonth: 1,
+      toYear: today.year(),
+      toMonth: today.month() + 1,
+    }
   }
 
-  const dates = snapshots.map((s) => s.snapshotDate).sort()
+  const dates = snapshots.map((s) => dayjs(s.snapshotDate)).sort((a, b) =>
+    a.valueOf() - b.valueOf()
+  )
+  const first = dates[0]
+  const last = dates[dates.length - 1]
+
   return {
-    from: dayjs(dates[0]).toDate(),
-    to: dayjs(dates[dates.length - 1]).toDate(),
+    fromYear: first.year(),
+    fromMonth: first.month() + 1,
+    toYear: last.year(),
+    toMonth: last.month() + 1,
   }
 }
 
 export function StockHoldingRatioView({
   snapshots,
 }: StockHoldingRatioViewProps) {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(() =>
-    defaultDateRange(snapshots)
+  const [yearMonthRange, setYearMonthRange] = useState<YearMonthRangeValue>(
+    () => defaultYearMonthRange(snapshots)
   )
 
   const filteredSnapshots = useMemo(() => {
-    if (!dateRange?.from || !dateRange?.to) return snapshots
-    const from = dayjs(dateRange.from).format("YYYY-MM-DD")
-    const to = dayjs(dateRange.to).format("YYYY-MM-DD")
+    const from = dayjs(
+      `${yearMonthRange.fromYear}-${String(yearMonthRange.fromMonth).padStart(2, "0")}-01`
+    ).format("YYYY-MM-DD")
+    const to = dayjs(
+      `${yearMonthRange.toYear}-${String(yearMonthRange.toMonth).padStart(2, "0")}-01`
+    )
+      .endOf("month")
+      .format("YYYY-MM-DD")
+
     return snapshots.filter(
       (s) => s.snapshotDate >= from && s.snapshotDate <= to
     )
-  }, [snapshots, dateRange])
+  }, [snapshots, yearMonthRange])
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <DateRangePicker value={dateRange} onChange={setDateRange} />
+        <YearMonthRangeSelect
+          value={yearMonthRange}
+          onChange={setYearMonthRange}
+          yearOptions={YEAR_OPTIONS}
+        />
       </div>
       <StockHoldingStackedBarChart snapshots={filteredSnapshots} />
     </div>
