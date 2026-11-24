@@ -18,6 +18,34 @@ import {
   mapStockHoldingRowToItem,
 } from "@/lib/types/mappers"
 
+// Supabase(PostgREST)는 한 번의 select에 최대 1000행만 반환한다(max-rows 기본값).
+// 스냅샷 테이블은 매일 누적되어 1000행을 넘으므로, range로 페이지를 나눠 전체 행을 모두 가져온다.
+// 페이지 경계에서 행이 누락/중복되지 않도록 정렬 컬럼 + id(고유값) 순으로 정렬을 고정한다.
+const PAGE_SIZE = 1000
+
+async function selectAllRows<T>(
+  table: string,
+  orderColumns: string[] = []
+): Promise<T[]> {
+  const supabase = createSupabaseServerClient()
+  const rows: T[] = []
+
+  for (let from = 0; ; from += PAGE_SIZE) {
+    let query = supabase.from(table).select("*")
+    for (const column of [...orderColumns, "id"]) {
+      query = query.order(column, { ascending: true })
+    }
+    const { data, error } = await query.range(from, from + PAGE_SIZE - 1)
+    if (error) throw error
+
+    const page = (data ?? []) as T[]
+    rows.push(...page)
+    if (page.length < PAGE_SIZE) break
+  }
+
+  return rows
+}
+
 export async function getAccounts(): Promise<Account[]> {
   const supabase = createSupabaseServerClient()
   const { data, error } = await supabase.from("accounts").select("*")
@@ -26,10 +54,10 @@ export async function getAccounts(): Promise<Account[]> {
 }
 
 export async function getAccountSnapshots(): Promise<AccountSnapshot[]> {
-  const supabase = createSupabaseServerClient()
-  const { data, error } = await supabase.from("account_snapshots").select("*")
-  if (error) throw error
-  return (data as AccountSnapshotRow[]).map(mapSnapshotRowToSnapshot)
+  const rows = await selectAllRows<AccountSnapshotRow>("account_snapshots", [
+    "snapshot_date",
+  ])
+  return rows.map(mapSnapshotRowToSnapshot)
 }
 
 // 특정 날짜(snapshot_date)의 계좌 스냅샷 전체를 조회한다. 알림용 전일 대비 계산에 사용.
@@ -105,21 +133,18 @@ export async function getLatestAssetClassSnapshots(): Promise<
 }
 
 export async function getDividendSnapshots(): Promise<DividendSnapshot[]> {
-  const supabase = createSupabaseServerClient()
-  const { data, error } = await supabase.from("dividend_snapshots").select("*")
-  if (error) throw error
-  return (data as DividendSnapshotRow[]).map(mapDividendSnapshotRowToItem)
+  const rows = await selectAllRows<DividendSnapshotRow>("dividend_snapshots")
+  return rows.map(mapDividendSnapshotRowToItem)
 }
 
 export async function getStockHoldingSnapshots(): Promise<
   StockHoldingSnapshot[]
 > {
-  const supabase = createSupabaseServerClient()
-  const { data, error } = await supabase
-    .from("stock_holding_snapshots")
-    .select("*")
-  if (error) throw error
-  return (data as StockHoldingSnapshotRow[]).map(mapStockHoldingRowToItem)
+  const rows = await selectAllRows<StockHoldingSnapshotRow>(
+    "stock_holding_snapshots",
+    ["snapshot_date"]
+  )
+  return rows.map(mapStockHoldingRowToItem)
 }
 
 // 특정 날짜(snapshot_date)의 종목 스냅샷 전체를 조회한다.

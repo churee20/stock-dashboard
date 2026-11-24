@@ -111,8 +111,14 @@ export function parseInvestmentSheet(rows: string[][]): SheetAccountRow[] {
     }
 
     const currentAmount = parseAmount(row[COLUMN.CURRENT_AMOUNT])
-    const profitAmount = parseAmount(row[COLUMN.PROFIT_AMOUNT])
     const profitRate = parseAmount(row[COLUMN.PROFIT_RATE])
+    // 시트의 수익금액 셀은 손실이어도 "-" 부호 없이 표기되는 경우가 있어(서식/▼ 표기),
+    // 부호가 있는 수익률 셀을 기준으로 수익금액의 부호를 맞춘다.
+    const rawProfitAmount = parseAmount(row[COLUMN.PROFIT_AMOUNT])
+    const profitAmount =
+      rawProfitAmount !== null && profitRate !== null && profitRate < 0
+        ? -Math.abs(rawProfitAmount)
+        : rawProfitAmount
 
     if (currentPrincipalAmount === null || currentAmount === null) {
       currentAccountName = ""
